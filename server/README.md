@@ -1,3 +1,5 @@
+# Project Structure
+```
 root/
 │── client/                     # React / Next.js frontend
 │
@@ -70,6 +72,8 @@ root/
     ├── package.json
     ├── README.md
     └── Dockerfile              # for containerized deployment
+```
 
-- [Model Link](https://app.eraser.io/workspace/Cii6AbvNDxNIb3p880kS)
+### 🔗 **Model Link**
+[https://app.eraser.io/workspace/Cii6AbvNDxNIb3p880kS](https://app.eraser.io/workspace/Cii6AbvNDxNIb3p880kS)
 
