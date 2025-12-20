@@ -1,9 +1,6 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import { DB_NAME } from "../constants.js";
 import { logger } from "../utils/logger.js";
-
-dotenv.config();
 
 const DEFAULT_URI = `mongodb://localhost:27017/${DB_NAME}`;
 const { MONGODB_URI = DEFAULT_URI } = process.env;
