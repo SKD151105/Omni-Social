@@ -3,6 +3,7 @@ import cors from "cors";
 import { logger } from "./utils/logger.js";
 import cookieParser from "cookie-parser";
 import { asyncHandler } from "./utils/asyncHandler.js";
+import { ApiError } from "./utils/ApiError.js";
 import userRouter from "./routes/user.route.js";
 
 const app = express();
@@ -55,9 +56,9 @@ app.use((req, res, next) => {
 
 app.use("/api/v1/users", userRouter);
 
-// Fallback for unmatched routes
-app.use((req, res) => {
-    res.status(404).json({ message: "Not found" });
+// Fallback for unmatched routes: forward to centralized error handler
+app.use((req, res, next) => {
+    next(new ApiError(404, "Not found"));
 });
 
 // Centralized error handler

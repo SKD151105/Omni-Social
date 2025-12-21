@@ -77,3 +77,64 @@ root/
 ### 🔗 **Model Link**
 [https://app.eraser.io/workspace/Cii6AbvNDxNIb3p880kS](https://app.eraser.io/workspace/Cii6AbvNDxNIb3p880kS)
 
+---
+
+## **Current Folder Structure & Purpose**
+
+### **`src/`** - Source Code Root
+
+#### **`index.js`**
+The main application entry point. Loads environment variables, connects to MongoDB, and starts the HTTP server with error handling.
+
+#### **`app.js`**
+Configures the Express application: CORS, body parsers, cookie parser, static files, request logger, routes, 404 handler, and centralized error middleware.
+
+#### **`controllers/`**
+Contains request handlers that implement business logic and send responses.
+- **Example**: `user.controller.js` - handles user registration, login, profile updates
+- **Purpose**: Separates routing from logic; keeps route files clean
+
+#### **`routes/`**
+Defines URL endpoints and maps them to controller functions.
+- **Example**: `user.route.js` - defines `/api/v1/users/register`, `/login`, etc.
+- **Purpose**: Central place for all API routes; improves discoverability
+
+#### **`models/`**
+Mongoose schemas and models that define data structure and database behavior.
+- **Example**: `user.model.js` - user schema with password hashing, JWT token methods
+- **Example**: `video.model.js` - video schema with owner refs and aggregate pagination
+- **Purpose**: Enforces data integrity; keeps DB logic centralized
+
+#### **`db/`**
+Database connection setup and configuration.
+- **Example**: `index.js` - connects to MongoDB with error handling and logging
+- **Purpose**: Isolates DB connection logic; makes testing easier
+
+#### **`middlewares/`**
+Reusable middleware functions that process requests before reaching controllers.
+- **Use cases**: Authentication, input validation, file upload handling, rate limiting
+- **Purpose**: DRY principle; keeps common logic reusable across routes
+
+#### **`utils/`**
+Helper functions and utilities used throughout the application.
+- **`logger.js`** - console logger with log levels
+- **`asyncHandler.js`** - wraps async route handlers to catch errors
+- **`ApiError.js`** - standardized error response class
+- **`ApiResponse.js`** - standardized success response wrapper
+- **`cloudinary.js`** - file upload utility for Cloudinary
+- **Purpose**: Reduces code duplication; provides consistent utilities
+
+#### **`constants.js`**
+Application-wide constants, configuration values, and enums.
+- **Use cases**: Feature flags, rate limits, default values, status codes
+- **Purpose**: Avoids magic strings/numbers; single source of truth
+
+---
+
+## **Architecture Benefits**
+
+✅ **Separation of Concerns** - Each folder has a single, clear responsibility  
+✅ **Testability** - Import app/controllers/models independently for unit tests  
+✅ **Maintainability** - New features follow predictable patterns  
+✅ **Scalability** - Easy to add new routes, models, or middleware  
+✅ **Onboarding** - New developers can quickly understand the structure
