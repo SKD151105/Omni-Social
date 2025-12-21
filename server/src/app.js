@@ -3,6 +3,7 @@ import cors from "cors";
 import { logger } from "./utils/logger.js";
 import cookieParser from "cookie-parser";
 import { asyncHandler } from "./utils/asyncHandler.js";
+import userRouter from "./routes/user.route.js";
 
 const app = express();
 
@@ -46,11 +47,13 @@ app.use((req, res, next) => {
 });
 
 // Using asyncHandler to wrap async route handlers
-app.get("/",
-    asyncHandler(async (req, res) => {
-        res.status(200).json({ status: "ok" });
-    }),
-);
+// app.get("/",
+//     asyncHandler(async (req, res) => {
+//         res.status(200).json({ status: "ok" });
+//     }),
+// );
+
+app.use("/api/v1/users", userRouter);
 
 // Fallback for unmatched routes
 app.use((req, res) => {
