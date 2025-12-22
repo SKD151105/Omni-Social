@@ -64,7 +64,7 @@ app.use((req, res, next) => {
 // Centralized error handler
 // Using _next to indicate we are not using the next parameter to avoid linting issues
 app.use((err, req, res, _next) => {
-    logger.error("Unhandled error", { error: err?.message });
+    logger.error("Unhandled error", { error: err?.message, stack: err?.stack });
     res.status(err?.status || 500).json({ message: err?.message || "Internal server error" });
 });
 
