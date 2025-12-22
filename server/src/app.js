@@ -54,7 +54,7 @@ app.use((req, res, next) => {
 //     }),
 // );
 
-app.use("/api/v1/users", userRouter);
+app.use("/api/v1/user", userRouter);
 
 // Fallback for unmatched routes: forward to centralized error handler
 app.use((req, res, next) => {
