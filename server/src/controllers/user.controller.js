@@ -4,12 +4,23 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import fs from "fs";
 
 // Helper to generate fresh tokens for a user
 const generateAuthTokens = (user) => {
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
     return { accessToken, refreshToken };
+};
+
+// Best-effort local file cleanup (temp uploads)
+const safeUnlink = (filePath) => {
+    if (!filePath) return;
+    try {
+        fs.unlinkSync(filePath);
+    } catch (_err) {
+        // swallow cleanup errors
+    }
 };
 
 // Either export at the end or inline (but do it everywhere consistently)
@@ -46,35 +57,41 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar image is required");
     }
 
-    // 5. upload them to cloudinary and get the URLs
-    const avatarUrl = await uploadOnCloudinary(avatarLocalPath);
-    let coverImageUrl;
-    if (coverImageLocalPath) {
-        coverImageUrl = await uploadOnCloudinary(coverImageLocalPath);
+    try {
+        // 5. upload them to cloudinary and get the URLs
+        const avatarUrl = await uploadOnCloudinary(avatarLocalPath);
+        let coverImageUrl;
+        if (coverImageLocalPath) {
+            coverImageUrl = await uploadOnCloudinary(coverImageLocalPath);
+        }
+
+        if (!avatarUrl) {
+            throw new ApiError(500, "Failed to upload avatar image");
+        }
+
+        // 6. create a new user object and save to DB
+        const user = await User.create({
+            username: usernameNormalized,
+            email: emailNormalized,
+            fullName,
+            password,
+            avatar: avatarUrl.url,
+            coverImage: coverImageUrl?.url || ""
+        });
+
+        // 7. respond with success message (without password and refresh token fields) or errors
+        const savedUser = await User.findById(user._id).select("-password -refreshToken");
+
+        if (!savedUser) {
+            throw new ApiError(500, "Failed to register user");
+        }
+
+        res.status(201).json(new ApiResponse(201, savedUser, "User registered successfully"));
+    } finally {
+        // Ensure temp files are removed even if validation/upload fails
+        safeUnlink(avatarLocalPath);
+        safeUnlink(coverImageLocalPath);
     }
-
-    if (!avatarUrl) {
-        throw new ApiError(500, "Failed to upload avatar image");
-    }
-
-    // 6. create a new user object and save to DB
-    const user = await User.create({
-        username: usernameNormalized,
-        email: emailNormalized,
-        fullName,
-        password,
-        avatar: avatarUrl.url,
-        coverImage: coverImageUrl?.url || ""
-    });
-
-    // 7. respond with success message (without password and refresh token fields) or errors
-    const savedUser = await User.findById(user._id).select("-password -refreshToken");
-
-    if (!savedUser) {
-        throw new ApiError(500, "Failed to register user");
-    }
-
-    res.status(201).json(new ApiResponse(201, savedUser, "User registered successfully"));
 
     // Use this for testing route setup when no Business logic is present yet
     // res.status(201).json({
