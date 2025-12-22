@@ -23,3 +23,12 @@ export const uploadOnCloudinary = async (localFilePath) => {
         return null;
     }
 };
+
+export const deleteFromCloudinary = async (publicId) => {
+    if (!publicId) return;
+    try {
+        await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+        console.error("Cloudinary delete failed", { publicId, error: error?.message });
+    }
+};

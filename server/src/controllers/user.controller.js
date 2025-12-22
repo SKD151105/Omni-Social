@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import fs from "fs";
@@ -59,13 +59,13 @@ const registerUser = asyncHandler(async (req, res) => {
 
     try {
         // 5. upload them to cloudinary and get the URLs
-        const avatarUrl = await uploadOnCloudinary(avatarLocalPath);
-        let coverImageUrl;
+        const avatarUpload = await uploadOnCloudinary(avatarLocalPath);
+        let coverImageUpload;
         if (coverImageLocalPath) {
-            coverImageUrl = await uploadOnCloudinary(coverImageLocalPath);
+            coverImageUpload = await uploadOnCloudinary(coverImageLocalPath);
         }
 
-        if (!avatarUrl) {
+        if (!avatarUpload) {
             throw new ApiError(500, "Failed to upload avatar image");
         }
 
@@ -75,8 +75,10 @@ const registerUser = asyncHandler(async (req, res) => {
             email: emailNormalized,
             fullName,
             password,
-            avatar: avatarUrl.url,
-            coverImage: coverImageUrl?.url || ""
+            avatar: avatarUpload.url,
+            avatarId: avatarUpload.public_id,
+            coverImage: coverImageUpload?.url || "",
+            coverImageId: coverImageUpload?.public_id || ""
         });
 
         // 7. respond with success message (without password and refresh token fields) or errors
@@ -303,7 +305,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
             throw new ApiError(500, "Failed to upload avatar image");
         }
 
+        // best-effort delete old avatar
+        if (user.avatarId) {
+            deleteFromCloudinary(user.avatarId);
+        }
+
         user.avatar = avatar.url;
+        user.avatarId = avatar.public_id;
         await user.save({ validateBeforeSave: false });
 
         return res
@@ -333,7 +341,13 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
             throw new ApiError(500, "Failed to upload cover image");
         }
 
+        // best-effort delete old cover image
+        if (user.coverImageId) {
+            deleteFromCloudinary(user.coverImageId);
+        }
+
         user.coverImage = coverImage.url;
+        user.coverImageId = coverImage.public_id;
         await user.save({ validateBeforeSave: false });
 
         return res
