@@ -287,74 +287,66 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "Account details updated successfully"));
 });
 
-const updateUserAvatar = asyncHandler(async (req, res) => {
-    const avatarLocalPath = req.file?.path;
+// Combined profile update: optional avatar, cover image, fullName, email
+const updateUserProfile = asyncHandler(async (req, res) => {
+    const fullName = req.body?.fullName?.trim();
+    const emailNormalized = req.body?.email?.trim()?.toLowerCase();
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
-    if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is required");
+    if (![fullName, emailNormalized, avatarLocalPath, coverImageLocalPath].some(Boolean)) {
+        throw new ApiError(400, "No updates provided");
     }
 
     const user = await User.findById(req.user?._id);
     if (!user) {
         safeUnlink(avatarLocalPath);
-        throw new ApiError(404, "User not found");
-    }
-
-    try {
-        const avatar = await uploadOnCloudinary(avatarLocalPath);
-        if (!avatar) {
-            throw new ApiError(500, "Failed to upload avatar image");
-        }
-
-        // best-effort delete old avatar
-        if (user.avatarId) {
-            deleteFromCloudinary(user.avatarId);
-        }
-
-        user.avatar = avatar.url;
-        user.avatarId = avatar.public_id;
-        await user.save({ validateBeforeSave: false });
-
-        return res
-            .status(200)
-            .json(new ApiResponse(200, { avatar: user.avatar }, "Avatar updated successfully"));
-    } finally {
-        safeUnlink(avatarLocalPath);
-    }
-});
-
-const updateUserCoverImage = asyncHandler(async (req, res) => {
-    const coverImageLocalPath = req.file?.path;
-
-    if (!coverImageLocalPath) {
-        throw new ApiError(400, "Cover image file is required");
-    }
-
-    const user = await User.findById(req.user?._id);
-    if (!user) {
         safeUnlink(coverImageLocalPath);
         throw new ApiError(404, "User not found");
     }
 
     try {
-        const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-        if (!coverImage) {
-            throw new ApiError(500, "Failed to upload cover image");
+        if (avatarLocalPath) {
+            const avatarUpload = await uploadOnCloudinary(avatarLocalPath);
+            if (!avatarUpload) {
+                throw new ApiError(500, "Failed to upload avatar image");
+            }
+            if (user.avatarId) {
+                deleteFromCloudinary(user.avatarId);
+            }
+            user.avatar = avatarUpload.url;
+            user.avatarId = avatarUpload.public_id;
         }
 
-        // best-effort delete old cover image
-        if (user.coverImageId) {
-            deleteFromCloudinary(user.coverImageId);
+        if (coverImageLocalPath) {
+            const coverImageUpload = await uploadOnCloudinary(coverImageLocalPath);
+            if (!coverImageUpload) {
+                throw new ApiError(500, "Failed to upload cover image");
+            }
+            if (user.coverImageId) {
+                deleteFromCloudinary(user.coverImageId);
+            }
+            user.coverImage = coverImageUpload.url;
+            user.coverImageId = coverImageUpload.public_id;
         }
 
-        user.coverImage = coverImage.url;
-        user.coverImageId = coverImage.public_id;
+        if (fullName) {
+            user.fullName = fullName;
+        }
+
+        if (emailNormalized) {
+            user.email = emailNormalized;
+        }
+
         await user.save({ validateBeforeSave: false });
+
+        const safeUser = await User.findById(user._id).select("fullName email username avatar coverImage");
 
         return res
             .status(200)
-            .json(new ApiResponse(200, { coverImage: user.coverImage }, "Cover image updated successfully"));
+            .json(new ApiResponse(200, safeUser, "Profile updated successfully"));
     } finally {
+        safeUnlink(avatarLocalPath);
         safeUnlink(coverImageLocalPath);
     }
 });
@@ -471,4 +463,15 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, history, "Watch history fetched successfully"));
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile, getWatchHistory };
+export {
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserProfile,
+    getUserChannelProfile,
+    getWatchHistory,
+};
