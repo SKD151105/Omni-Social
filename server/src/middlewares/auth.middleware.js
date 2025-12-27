@@ -25,6 +25,9 @@ export const verifyJWT = asyncHandler(async (req, _res, next) => {
         throw new ApiError(401, "User not found for this token");
     }
 
-    req.user = user;
+    req.user = user.toObject();
+    if (decoded.role) {
+        req.user.role = decoded.role;
+    }
     next();
 });

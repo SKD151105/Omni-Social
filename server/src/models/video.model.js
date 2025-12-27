@@ -15,10 +15,15 @@ const VideoSchema = new Schema(
             type: String,
             required: true,
             trim: true,
+            minlength: [2, "Title must be at least 2 characters long"],
+            maxlength: [120, "Title cannot exceed 120 characters"],
         },
         description: {
             type: String,
             required: true,
+            trim: true,
+            minlength: [10, "Description must be at least 10 characters long"],
+            maxlength: [2000, "Description cannot exceed 2000 characters"],
         },
         duration: {
             type: Number,

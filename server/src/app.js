@@ -5,7 +5,17 @@ import { logger } from "./utils/logger.js";
 import cookieParser from "cookie-parser";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { ApiError } from "./utils/ApiError.js";
+import { rateLimiter } from "./middlewares/rateLimiter.middleware.js";
+import { requestLogger } from "./middlewares/requestLogger.middleware.js";
 import userRouter from "./routes/user.route.js";
+import commentRouter from "./routes/comment.route.js";
+import likeRouter from "./routes/like.route.js";
+import playlistRouter from "./routes/playlist.route.js";
+import subscriptionRouter from "./routes/subscription.route.js";
+import tweetRouter from "./routes/tweet.route.js";
+import videoRouter from "./routes/video.route.js";
+import channelRouter from "./routes/channel.route.js";
+import dashboardRouter from "./routes/dashboard.route.js";
 
 const app = express();
 
@@ -14,54 +24,34 @@ const corsOptions = {
     credentials: true,
 };
 
-app.use(cors(corsOptions));
-app.use(express.json({ limit: "16kb" }));
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
-app.use(cookieParser());
-app.use(express.static("public"));
-
 // Correlation ID middleware
 app.use((req, _res, next) => {
     req.requestId = req.headers["x-request-id"] || crypto.randomUUID();
     next();
 });
 
-/*
- * Simple request logger.
- * Records method, URL, status, duration, IP, user-agent, and response size.
- * Runs on the "finish" event so timing and status are accurate.
- * Lightweight enough for dev; useful for basic observability in prod.
-*/
-app.use((req, res, next) => {
-    const start = process.hrtime.bigint(); // high precision timer
-
-    res.on("finish", () => {
-        const end = process.hrtime.bigint();
-        const durationMs = Number(end - start) / 1_000_000; // convert ns → ms
-
-        logger.info("HTTP", {
-            method: req.method,
-            path: req.originalUrl,
-            status: res.statusCode,
-            durationMs: durationMs.toFixed(2),
-            ip: req.ip || req.connection.remoteAddress,
-            userAgent: req.headers["user-agent"],
-            contentLength: res.get("Content-Length") || 0,
-            timestamp: new Date().toISOString(),
-            requestId: req.requestId,
-            userId: req.user?._id,
-        });
-    });
-
-    next();
-});
+app.use(requestLogger);
+app.use(rateLimiter);
+app.use(cors(corsOptions));
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(cookieParser());
+app.use(express.static("public"));
 
 // Basic healthcheck
-app.get("/healthz", asyncHandler(async (req, res) => {
+app.get("/healthcheck", asyncHandler(async (req, res) => {
     res.status(200).json({ status: "ok", uptime: process.uptime(), requestId: req.requestId });
 }));
 
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/tweets", tweetRouter);
+app.use("/api/v1/subscriptions", subscriptionRouter);
+app.use("/api/v1/videos", videoRouter);
+app.use("/api/v1/comments", commentRouter);
+app.use("/api/v1/likes", likeRouter);
+app.use("/api/v1/playlists", playlistRouter);
+app.use("/api/v1/channels", channelRouter);
+app.use("/api/v1/dashboard", dashboardRouter);
 
 // Fallback for unmatched routes: forward to centralized error handler
 app.use((req, res, next) => {

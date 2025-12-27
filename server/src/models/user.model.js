@@ -6,11 +6,14 @@ const UserSchema = new Schema(
     {
         username: {
             type: String,
-            required: true,
+            required: [true, "Username is required"],
             unique: true,
             lowercase: true,
             trim: true,
             index: true,
+            minlength: [3, "Username must be at least 3 characters long"],
+            maxlength: [30, "Username must be at most 30 characters long"],
+            match: [/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"],
         },
         email: {
             type: String,
@@ -18,12 +21,18 @@ const UserSchema = new Schema(
             unique: true,
             lowercase: true,
             trim: true,
+            match: [
+                /^([a-zA-Z0-9_\-.+]+)@([a-zA-Z0-9\-.]+)\.([a-zA-Z]{2,})$/,
+                "Please provide a valid email address"
+            ],
         },
         fullName: {
             type: String,
-            required: true,
+            required: [true, "Full name is required"],
             trim: true,
             index: true,
+            minlength: [2, "Full name must be at least 2 characters long"],
+            maxlength: [50, "Full name must be at most 50 characters long"],
         },
         avatar: {
             type: String, // cloudinary URL
@@ -47,9 +56,21 @@ const UserSchema = new Schema(
         password: {
             type: String,
             required: [true, "Password is required"],
+            minlength: [8, "Password must be at least 8 characters long"],
+            maxlength: [100, "Password must be at most 100 characters long"],
+            // At least one uppercase, one lowercase, one number, one special char
+            match: [
+                /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/,
+                "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+            ],
         },
         refreshToken: {
             type: String,
+        },
+        role: {
+            type: String,
+            enum: ["user", "admin"],
+            default: "user",
         },
     },
     { timestamps: true }
@@ -67,7 +88,13 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
 };
 
 UserSchema.methods.generateAccessToken = function () {
-    const payload = { id: this._id, email: this.email, username: this.username, fullName: this.fullName };
+    const payload = {
+        id: this._id,
+        email: this.email,
+        username: this.username,
+        fullName: this.fullName,
+        role: this.role,
+    };
     return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "15m",
     });
