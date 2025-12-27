@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import crypto from "crypto";
 import { logger } from "./utils/logger.js";
 import cookieParser from "cookie-parser";
 import { asyncHandler } from "./utils/asyncHandler.js";
@@ -18,6 +19,12 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.use(express.static("public"));
+
+// Correlation ID middleware
+app.use((req, _res, next) => {
+    req.requestId = req.headers["x-request-id"] || crypto.randomUUID();
+    next();
+});
 
 /*
  * Simple request logger.
@@ -40,19 +47,19 @@ app.use((req, res, next) => {
             ip: req.ip || req.connection.remoteAddress,
             userAgent: req.headers["user-agent"],
             contentLength: res.get("Content-Length") || 0,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            requestId: req.requestId,
+            userId: req.user?._id,
         });
     });
 
     next();
 });
 
-// Using asyncHandler to wrap async route handlers
-// app.get("/",
-//     asyncHandler(async (req, res) => {
-//         res.status(200).json({ status: "ok" });
-//     }),
-// );
+// Basic healthcheck
+app.get("/healthz", asyncHandler(async (req, res) => {
+    res.status(200).json({ status: "ok", uptime: process.uptime(), requestId: req.requestId });
+}));
 
 app.use("/api/v1/user", userRouter);
 
@@ -64,8 +71,14 @@ app.use((req, res, next) => {
 // Centralized error handler
 // Using _next to indicate we are not using the next parameter to avoid linting issues
 app.use((err, req, res, _next) => {
-    logger.error("Unhandled error", { error: err?.message, stack: err?.stack });
-    res.status(err?.status || 500).json({ message: err?.message || "Internal server error" });
+    const statusCode = err?.statusCode || err?.status || 500;
+    const message = err?.message || "Internal server error";
+    const errors = err?.errors || [];
+    const data = err?.data ?? null;
+
+    logger.error("Unhandled error", { error: message, stack: err?.stack, statusCode, requestId: req.requestId, userId: req.user?._id });
+
+    res.status(statusCode).json({ success: false, message, errors, data, requestId: req.requestId });
 });
 
 export default app;

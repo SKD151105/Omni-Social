@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
+import { logger } from './logger.js';
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -18,7 +19,7 @@ export const uploadOnCloudinary = async (localFilePath) => {
         fs.unlinkSync(localFilePath); // remove temp file after successful upload
         return response;
     } catch (error) {
-        console.error("Cloudinary upload failed", { localFilePath, error: error?.message });
+        logger.error("Cloudinary upload failed", { localFilePath, error: error?.message });
         fs.unlinkSync(localFilePath); // clean up even on failure
         return null;
     }
@@ -29,6 +30,6 @@ export const deleteFromCloudinary = async (publicId) => {
     try {
         await cloudinary.uploader.destroy(publicId);
     } catch (error) {
-        console.error("Cloudinary delete failed", { publicId, error: error?.message });
+        logger.error("Cloudinary delete failed", { publicId, error: error?.message });
     }
 };
