@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Playlist } from "../models/playlist.model.js";
+import * as PlaylistRepo from "../repositories/playlist.repository.js";
 import { Video } from "../models/video.model.js";
 import { ApiError } from "../utils/ApiError.js";
 
@@ -83,30 +83,28 @@ export const removeVideoFromPlaylistService = async ({ playlistId, videoId, owne
 
 export const deletePlaylistService = async ({ playlistId, ownerId }) => {
     ensureId(playlistId, "playlist");
-    const playlist = await Playlist.findById(playlistId);
+    const playlist = await PlaylistRepo.findPlaylistById(playlistId);
     if (!playlist) {
         throw new ApiError(404, "Playlist not found");
     }
     if (String(playlist.owner) !== String(ownerId)) {
         throw new ApiError(403, "Not allowed to delete this playlist");
     }
-
-    await playlist.deleteOne();
+    await PlaylistRepo.deletePlaylistById(playlistId);
     return true;
 };
 
 export const updatePlaylistService = async ({ playlistId, ownerId, name, description }) => {
     ensureId(playlistId, "playlist");
-    const playlist = await Playlist.findById(playlistId);
+    const playlist = await PlaylistRepo.findPlaylistById(playlistId);
     if (!playlist) {
         throw new ApiError(404, "Playlist not found");
     }
     if (String(playlist.owner) !== String(ownerId)) {
         throw new ApiError(403, "Not allowed to modify this playlist");
     }
-
-    if (name?.trim()) playlist.name = name.trim();
-    if (description !== undefined) playlist.description = description?.trim() || "";
-    await playlist.save();
-    return playlist;
+    return PlaylistRepo.updatePlaylistById(playlistId, {
+        ...(name?.trim() && { name: name.trim() }),
+        ...(description !== undefined && { description: description?.trim() || "" }),
+    });
 };

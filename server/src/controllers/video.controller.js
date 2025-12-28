@@ -17,13 +17,21 @@ export const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 export const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description, duration } = req.body;
+    const { title, description } = req.body;
     if (!req.user?._id) {
         throw new ApiError(401, "Unauthorized");
     }
 
     const videoFilePath = req.files?.videoFile?.[0]?.path;
     const thumbnailPath = req.files?.thumbnail?.[0]?.path;
+    // Extract duration from video file
+    const { getVideoDuration } = await import("../utils/videoMeta.js");
+    let duration;
+    try {
+        duration = await getVideoDuration(videoFilePath);
+    } catch (err) {
+        throw new ApiError(500, "Failed to extract video duration");
+    }
 
     const video = await publishVideoService({
         ownerId: req.user._id,

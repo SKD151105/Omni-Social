@@ -23,8 +23,8 @@ A scalable social media backend built with Express.js, featuring authentication,
 ---
 **Security & Authentication**
 - JWT-based authentication
-- Rate limiting (IP-based, in-memory)
-- Input validation
+- Rate limiting (IP-based, Redis-backed with in-memory fallback)
+- Input validation (schema-level)
 
 **Observability**
 - Request logging with correlation IDs
@@ -32,6 +32,7 @@ A scalable social media backend built with Express.js, featuring authentication,
 
 **Architecture**
 - Layered architecture (Controllers → Services → Repositories)
+- Repository pattern for all major entities
 - Clean separation of concerns
 
 ---
@@ -45,7 +46,7 @@ server/
 │   ├── index.js            # Server entry point
 │   ├── controllers/        # HTTP request handlers
 │   ├── services/           # Business logic
-│   ├── repositories/       # Database queries (currently user only)
+│   ├── repositories/       # Database queries (all major entities)
 │   ├── models/             # Mongoose schemas
 │   ├── middlewares/        # Custom middleware
 │   ├── routes/             # API routes
@@ -53,7 +54,7 @@ server/
 │   └── constants.js        # Shared constants
 ```
 
-> **Note:** The repository layer is currently only implemented for users. Direct model access is used for other entities.
+> **Note:** The repository pattern is now implemented for all major entities (users, videos, comments, tweets, playlists). All database access is routed through repositories for maintainability and testability.
 
 ---
 
@@ -65,7 +66,7 @@ Requests flow through middleware in this order:
 |------|-----------|---------|
 | **1** | Correlation ID | Unique ID for request tracking |
 | **2** | Request Logger | Logs method, path, status, duration |
-| **3** | Rate Limiter | Protects against abuse (returns 429) |
+| **3** | Rate Limiter | Protects against abuse (returns 429, Redis-backed with in-memory fallback) |
 | **4** | Security Headers | CORS configuration |
 | **5** | Body Parser | Handles JSON and form data |
 | **6** | Authentication | JWT verification (sets `req.user`) |
@@ -251,9 +252,11 @@ JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=7d
 PORT=5000
 
-# Optional
+# Optional (Rate Limiting)
 RATE_LIMIT_MAX=100
 RATE_LIMIT_WINDOW=900000
+# Redis (for scalable rate limiting)
+REDIS_URL=redis://localhost:6379
 ```
 
 ### Running the Server
@@ -334,20 +337,37 @@ pm2 startup
 
 ## Architecture Decisions
 
-### Layered Architecture
+#### Layered Architecture
 
 - **Controllers** handle HTTP requests/responses
 - **Services** contain business logic
-- **Repositories** handle database operations (currently user only)
-- **Clear separation** makes code testable
+- **Repositories** handle database operations (all major entities)
+- **Clear separation** makes code testable and maintainable
 
-### Stateless Design
+#### Repository Pattern
+
+- All major entities (users, videos, comments, tweets, playlists) use a repository layer for DB access
+- Enables easy mocking and unit testing
+
+#### Rate Limiting
+
+- Uses Redis for distributed rate limiting if available
+- Falls back to in-memory store if Redis is not configured
+- Configurable via environment variables
+
+#### File Uploads
+
+- Unique filenames for all uploads
+- Remote file cleanup on DB save failure
+- Robust error handling for all upload scenarios
+
+#### Stateless Design
 
 - **No server-side sessions**
 - **JWT tokens** for authentication
 - **Enables horizontal scaling**
 
-### Middleware Order
+#### Middleware Order
 
 - **Security middleware** runs first
 - **Authentication** before authorization
@@ -362,6 +382,67 @@ pm2 startup
 3. Commit changes (`git commit -m 'Add new feature'`)
 4. Push to branch (`git push origin feature/new-feature`)
 5. Open a Pull Request
+
+---
+
+## Testing & Quality
+
+- Automated tests with Jest and Supertest
+- Example tests in `tests/` directory
+- Run all tests:
+
+```bash
+npm test
+```
+
+- All new features should include tests. See `tests/` for examples.
+
+---
+
+## File Uploads & Error Handling
+
+- All uploaded files (images, videos) use unique filenames to prevent collisions.
+- If a file is uploaded to remote storage (e.g., Cloudinary) but the DB save fails, the remote file is automatically deleted to prevent orphaned files.
+- All file upload errors are handled gracefully and return clear error messages.
+
+---
+
+## Redis Server (Windows) Setup & Commands
+
+### Start Redis Server
+
+Open Command Prompt and run:
+
+```
+cd C:\redis
+redis-server.exe --dir C:\redis\data
+```
+
+If you installed Redis with a config file, use:
+```
+redis-server.exe redis.windows.conf
+```
+
+### Stop Redis Server
+
+1. Find the Redis process ID (PID):
+   ```
+   netstat -a -n -o | find "6379"
+   ```
+   (Note the PID in the last column)
+2. Stop the process:
+   ```
+   taskkill /PID <PID> /F
+   ```
+   Example:
+   ```
+   taskkill /PID 24400 /F
+   ```
+
+### Notes
+- Only one Redis server can run on port 6379 at a time.
+- If you see a bind error, Redis is already running.
+- For production, consider running Redis as a service or using Docker.
 
 ---
 

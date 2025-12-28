@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Video } from "../models/video.model.js";
+import * as VideoRepo from "../repositories/video.repository.js";
 import { ApiError } from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
@@ -32,14 +32,9 @@ export const getAllVideosService = async ({ page = 1, limit = 10, query, sortBy 
     const sort = { [sortBy]: sortDir };
 
     const [items, total] = await Promise.all([
-        Video.find(filter)
-            .sort(sort)
-            .skip(skip)
-            .limit(limitNum)
-            .lean(),
-        Video.countDocuments(filter),
+        VideoRepo.findAllVideos(filter, { sort, skip, limit: limitNum }),
+        VideoRepo.countVideos(filter),
     ]);
-
     return {
         items,
         page: pageNum,
@@ -50,9 +45,10 @@ export const getAllVideosService = async ({ page = 1, limit = 10, query, sortBy 
 
 export const publishVideoService = async ({ ownerId, title, description, duration, videoFilePath, thumbnailPath }) => {
     if (![title, description, duration, videoFilePath, thumbnailPath].every(Boolean)) {
-        throw new ApiError(400, "title, description, duration, video file and thumbnail are required");
+        throw new ApiError(400, "title, description, video file, thumbnail, and extracted duration are required");
     }
 
+    const { deleteFromCloudinary } = await import("../utils/cloudinary.js");
     const videoUpload = await uploadOnCloudinary(videoFilePath);
     const thumbUpload = await uploadOnCloudinary(thumbnailPath);
 
@@ -60,21 +56,30 @@ export const publishVideoService = async ({ ownerId, title, description, duratio
         throw new ApiError(500, "Failed to upload media");
     }
 
-    const video = await Video.create({
-        title: title.trim(),
-        description: description.trim(),
-        duration: Number(duration),
-        videoFile: videoUpload.url,
-        thumbnail: thumbUpload.url,
-        owner: ownerId,
-    });
-
-    return video;
+    try {
+        return await VideoRepo.createVideo({
+            title: title.trim(),
+            description: description.trim(),
+            duration: Number(duration),
+            videoFile: videoUpload.url,
+            thumbnail: thumbUpload.url,
+            owner: ownerId,
+        });
+    } catch (err) {
+        // Clean up remote files if DB save fails
+        if (videoUpload.public_id) await deleteFromCloudinary(videoUpload.public_id);
+        if (thumbUpload.public_id) await deleteFromCloudinary(thumbUpload.public_id);
+        throw err;
+    }
 };
 
 export const getVideoByIdService = async ({ videoId }) => {
     ensureId(videoId, "video");
-    const video = await Video.findById(videoId).populate({ path: "owner", select: "username fullName avatar" });
+    const video = await VideoRepo.findVideoById(videoId);
+    // Populate owner if needed (can be handled in repo if preferred)
+    if (video && video.populate) {
+        await video.populate({ path: "owner", select: "username fullName avatar" });
+    }
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
@@ -83,7 +88,7 @@ export const getVideoByIdService = async ({ videoId }) => {
 
 export const updateVideoService = async ({ videoId, ownerId, title, description, thumbnailPath }) => {
     ensureId(videoId, "video");
-    const video = await Video.findById(videoId);
+    const video = await VideoRepo.findVideoById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
@@ -108,7 +113,7 @@ export const updateVideoService = async ({ videoId, ownerId, title, description,
 
 export const deleteVideoService = async ({ videoId, ownerId }) => {
     ensureId(videoId, "video");
-    const video = await Video.findById(videoId);
+    const video = await VideoRepo.findVideoById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
@@ -116,13 +121,13 @@ export const deleteVideoService = async ({ videoId, ownerId }) => {
         throw new ApiError(403, "Not allowed to delete this video");
     }
 
-    await video.deleteOne();
+    await VideoRepo.deleteVideoById(videoId);
     return true;
 };
 
 export const togglePublishStatusService = async ({ videoId, ownerId }) => {
     ensureId(videoId, "video");
-    const video = await Video.findById(videoId);
+    const video = await VideoRepo.findVideoById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
@@ -130,7 +135,6 @@ export const togglePublishStatusService = async ({ videoId, ownerId }) => {
         throw new ApiError(403, "Not allowed to update this video");
     }
 
-    video.isPublished = !video.isPublished;
-    await video.save();
-    return video;
+    const updated = await VideoRepo.togglePublishStatus(videoId, !video.isPublished);
+    return updated;
 };

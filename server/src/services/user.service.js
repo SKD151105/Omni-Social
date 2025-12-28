@@ -33,9 +33,9 @@ export const registerUserService = async ({ fullName, email, username, password,
         throw new ApiError(400, "Avatar image is required");
     }
 
+    let avatarUpload, coverImageUpload;
     try {
-        const avatarUpload = await uploadOnCloudinary(avatarLocalPath);
-        let coverImageUpload;
+        avatarUpload = await uploadOnCloudinary(avatarLocalPath);
         if (coverImageLocalPath) {
             coverImageUpload = await uploadOnCloudinary(coverImageLocalPath);
         }
@@ -44,23 +44,30 @@ export const registerUserService = async ({ fullName, email, username, password,
             throw new ApiError(500, "Failed to upload avatar image");
         }
 
-        const user = await userRepository.createUser({
-            username,
-            email,
-            fullName,
-            password,
-            avatar: avatarUpload.url,
-            avatarId: avatarUpload.public_id,
-            coverImage: coverImageUpload?.url || "",
-            coverImageId: coverImageUpload?.public_id || ""
-        });
+        try {
+            const user = await userRepository.createUser({
+                username,
+                email,
+                fullName,
+                password,
+                avatar: avatarUpload.url,
+                avatarId: avatarUpload.public_id,
+                coverImage: coverImageUpload?.url || "",
+                coverImageId: coverImageUpload?.public_id || ""
+            });
 
-        const savedUser = await userRepository.findById(user._id, "-password -refreshToken");
-        if (!savedUser) {
-            throw new ApiError(500, "Failed to register user");
+            const savedUser = await userRepository.findById(user._id, "-password -refreshToken");
+            if (!savedUser) {
+                throw new ApiError(500, "Failed to register user");
+            }
+
+            return savedUser;
+        } catch (err) {
+            // Clean up remote files if DB save fails
+            if (avatarUpload?.public_id) await deleteFromCloudinary(avatarUpload.public_id);
+            if (coverImageUpload?.public_id) await deleteFromCloudinary(coverImageUpload.public_id);
+            throw err;
         }
-
-        return savedUser;
     } finally {
         safeUnlink(avatarLocalPath);
         safeUnlink(coverImageLocalPath);
@@ -187,42 +194,50 @@ export const updateUserProfileService = async ({ userId, fullName, email, avatar
         throw new ApiError(404, "User not found");
     }
 
+    let avatarUpload, coverImageUpload;
     try {
         if (avatarLocalPath) {
-            const avatarUpload = await uploadOnCloudinary(avatarLocalPath);
+            avatarUpload = await uploadOnCloudinary(avatarLocalPath);
             if (!avatarUpload) {
                 throw new ApiError(500, "Failed to upload avatar image");
             }
-            if (user.avatarId) {
-                deleteFromCloudinary(user.avatarId);
-            }
-            user.avatar = avatarUpload.url;
-            user.avatarId = avatarUpload.public_id;
         }
-
         if (coverImageLocalPath) {
-            const coverImageUpload = await uploadOnCloudinary(coverImageLocalPath);
+            coverImageUpload = await uploadOnCloudinary(coverImageLocalPath);
             if (!coverImageUpload) {
                 throw new ApiError(500, "Failed to upload cover image");
             }
-            if (user.coverImageId) {
-                deleteFromCloudinary(user.coverImageId);
+        }
+
+        try {
+            if (avatarUpload) {
+                if (user.avatarId) {
+                    await deleteFromCloudinary(user.avatarId);
+                }
+                user.avatar = avatarUpload.url;
+                user.avatarId = avatarUpload.public_id;
             }
-            user.coverImage = coverImageUpload.url;
-            user.coverImageId = coverImageUpload.public_id;
+            if (coverImageUpload) {
+                if (user.coverImageId) {
+                    await deleteFromCloudinary(user.coverImageId);
+                }
+                user.coverImage = coverImageUpload.url;
+                user.coverImageId = coverImageUpload.public_id;
+            }
+            if (fullName) {
+                user.fullName = fullName;
+            }
+            if (email) {
+                user.email = email;
+            }
+            await userRepository.saveUser(user, { validateBeforeSave: false });
+            return userRepository.findById(user._id, "fullName email username avatar coverImage");
+        } catch (err) {
+            // Clean up remote files if DB save fails
+            if (avatarUpload?.public_id) await deleteFromCloudinary(avatarUpload.public_id);
+            if (coverImageUpload?.public_id) await deleteFromCloudinary(coverImageUpload.public_id);
+            throw err;
         }
-
-        if (fullName) {
-            user.fullName = fullName;
-        }
-
-        if (email) {
-            user.email = email;
-        }
-
-        await userRepository.saveUser(user, { validateBeforeSave: false });
-
-        return userRepository.findById(user._id, "fullName email username avatar coverImage");
     } finally {
         safeUnlink(avatarLocalPath);
         safeUnlink(coverImageLocalPath);

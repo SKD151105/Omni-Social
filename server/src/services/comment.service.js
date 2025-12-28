@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Comment } from "../models/comment.model.js";
+import * as CommentRepo from "../repositories/comment.repository.js";
 import { Video } from "../models/video.model.js";
 import { ApiError } from "../utils/ApiError.js";
 
@@ -18,15 +18,9 @@ export const getVideoCommentsService = async ({ videoId, page = 1, limit = 10 })
     const skip = (pageNum - 1) * limitNum;
 
     const [items, total] = await Promise.all([
-        Comment.find({ video: videoId })
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limitNum)
-            .populate({ path: "author", select: "username fullName avatar" })
-            .lean(),
-        Comment.countDocuments({ video: videoId }),
+        CommentRepo.findCommentsByVideo(videoId, { skip, limit: limitNum }),
+        CommentRepo.countCommentsByVideo(videoId),
     ]);
-
     return {
         items,
         page: pageNum,
@@ -48,13 +42,12 @@ export const addCommentService = async ({ videoId, authorId, content }) => {
         throw new ApiError(404, "Video not found");
     }
 
-    const comment = await Comment.create({
+    const comment = await CommentRepo.createComment({
         content: content.trim(),
         video: videoId,
         author: authorId,
     });
-
-    return Comment.findById(comment._id).populate({ path: "author", select: "username fullName avatar" });
+    return CommentRepo.findCommentById(comment._id);
 };
 
 export const updateCommentService = async ({ commentId, authorId, content }) => {
@@ -65,7 +58,7 @@ export const updateCommentService = async ({ commentId, authorId, content }) => 
         throw new ApiError(400, "Content is required");
     }
 
-    const comment = await Comment.findById(commentId);
+    const comment = await CommentRepo.findCommentById(commentId);
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
@@ -73,10 +66,8 @@ export const updateCommentService = async ({ commentId, authorId, content }) => 
         throw new ApiError(403, "Not allowed to update this comment");
     }
 
-    comment.content = content.trim();
-    await comment.save();
-
-    return Comment.findById(comment._id).populate({ path: "author", select: "username fullName avatar" });
+    const updated = await CommentRepo.updateCommentById(commentId, { content: content.trim() });
+    return CommentRepo.findCommentById(updated._id);
 };
 
 export const deleteCommentService = async ({ commentId, authorId }) => {
@@ -84,7 +75,7 @@ export const deleteCommentService = async ({ commentId, authorId }) => {
         throw new ApiError(400, "Invalid comment id");
     }
 
-    const comment = await Comment.findById(commentId);
+    const comment = await CommentRepo.findCommentById(commentId);
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
@@ -92,6 +83,6 @@ export const deleteCommentService = async ({ commentId, authorId }) => {
         throw new ApiError(403, "Not allowed to delete this comment");
     }
 
-    await comment.deleteOne();
+    await CommentRepo.deleteCommentById(commentId);
     return true;
 };

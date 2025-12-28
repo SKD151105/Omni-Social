@@ -5,7 +5,7 @@ import { logger } from "./utils/logger.js";
 import cookieParser from "cookie-parser";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { ApiError } from "./utils/ApiError.js";
-import { rateLimiter } from "./middlewares/rateLimiter.middleware.js";
+import { getRateLimiter } from "./middlewares/rateLimiter.middleware.js";
 import { requestLogger } from "./middlewares/requestLogger.middleware.js";
 import userRouter from "./routes/user.route.js";
 import commentRouter from "./routes/comment.route.js";
@@ -31,7 +31,7 @@ app.use((req, _res, next) => {
 });
 
 app.use(requestLogger);
-app.use(rateLimiter);
+app.use(getRateLimiter());
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));

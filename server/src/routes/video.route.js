@@ -3,7 +3,7 @@ import { validateBody } from "../middlewares/validation.middleware.js";
 const videoSchema = {
     title: { required: true, type: "string", minLength: 2, transform: "trim" },
     description: { type: "string", minLength: 0, transform: "trim" },
-    duration: { type: "number" },
+    // duration removed, will be extracted server-side
 };
 const updateVideoSchema = {
     title: { type: "string", minLength: 2, transform: "trim" },
