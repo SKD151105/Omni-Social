@@ -11,35 +11,32 @@
 
 </div>
 
----
-
 ## Overview
 
 A scalable social media backend built with Express.js, featuring authentication, user management, and production-ready middleware. Designed with clean architecture principles and separation of concerns.
 
---- 
-
 ### Features
----
+
 **Security & Authentication**
+
 - JWT-based authentication
 - Rate limiting (IP-based, Redis-backed with in-memory fallback)
 - Input validation (schema-level)
 
 **Observability**
+
 - Request logging with correlation IDs
 - Centralized error handling
 
 **Architecture**
+
 - Layered architecture (Controllers → Services → Repositories)
 - Repository pattern for all major entities
 - Clean separation of concerns
 
----
-
 ## Project Structure
 
-```
+```text
 server/
 ├── src/
 │   ├── app.js              # Express app configuration
@@ -55,8 +52,6 @@ server/
 ```
 
 > **Note:** The repository pattern is now implemented for all major entities (users, videos, comments, tweets, playlists). All database access is routed through repositories for maintainability and testability.
-
----
 
 ## Middleware Pipeline
 
@@ -75,13 +70,11 @@ Requests flow through middleware in this order:
 | **9** | 404 Handler | Handles unknown routes |
 | **10** | Error Handler | Centralized error responses |
 
----
-
-## API Reference
+## API Endpoints
 
 ### Authentication
 
-#### **Register User**
+#### Register User
 
 ```http
 POST /api/v1/auth/register
@@ -89,7 +82,7 @@ Content-Type: application/json
 ```
 
 <details>
-<summary><b>Request Body</b></summary>
+<summary>Request Body</summary>
 
 ```json
 {
@@ -98,10 +91,11 @@ Content-Type: application/json
   "password": "secure123"
 }
 ```
+
 </details>
 
 <details>
-<summary><b>Response</b></summary>
+<summary>Response</summary>
 
 ```json
 {
@@ -114,11 +108,10 @@ Content-Type: application/json
   "token": "eyJhbGc..."
 }
 ```
+
 </details>
 
----
-
-#### **Login**
+#### Login
 
 ```http
 POST /api/v1/auth/login
@@ -126,7 +119,7 @@ Content-Type: application/json
 ```
 
 <details>
-<summary><b>Request Body</b></summary>
+<summary>Request Body</summary>
 
 ```json
 {
@@ -134,10 +127,11 @@ Content-Type: application/json
   "password": "secure123"
 }
 ```
+
 </details>
 
 <details>
-<summary><b>Response</b></summary>
+<summary>Response</summary>
 
 ```json
 {
@@ -145,13 +139,12 @@ Content-Type: application/json
   "token": "eyJhbGc..."
 }
 ```
-</details>
 
----
+</details>
 
 ### User Management
 
-#### **Get Profile**
+#### Get Profile
 
 ```http
 GET /api/v1/users/me
@@ -159,7 +152,7 @@ Authorization: Bearer <token>
 ```
 
 <details>
-<summary><b>Response</b></summary>
+<summary>Response</summary>
 
 ```json
 {
@@ -171,11 +164,10 @@ Authorization: Bearer <token>
   }
 }
 ```
+
 </details>
 
----
-
-#### **Update Profile**
+#### Update Profile
 
 ```http
 PATCH /api/v1/users/me
@@ -184,17 +176,18 @@ Content-Type: application/json
 ```
 
 <details>
-<summary><b>Request Body</b></summary>
+<summary>Request Body</summary>
 
 ```json
 {
   "username": "alice_updated"
 }
 ```
+
 </details>
 
 <details>
-<summary><b>Response</b></summary>
+<summary>Response</summary>
 
 ```json
 {
@@ -206,9 +199,8 @@ Content-Type: application/json
   }
 }
 ```
-</details>
 
----
+</details>
 
 ### Error Response Format
 
@@ -218,8 +210,6 @@ Content-Type: application/json
   "message": "Validation failed: email is required"
 }
 ```
-
----
 
 ## Getting Started
 
@@ -287,8 +277,6 @@ curl http://localhost:5000/api/v1/users/me \
   -H "Authorization: Bearer <your-token>"
 ```
 
----
-
 ## Production Deployment (Recommendations)
 
 > **Note:** These are deployment recommendations, not included configurations in this repository.
@@ -303,12 +291,14 @@ curl http://localhost:5000/api/v1/users/me \
 ### Recommended: Reverse Proxy
 
 Using Nginx or Caddy as a reverse proxy is recommended for:
+
 - SSL/TLS termination
 - Load balancing
 - Static file serving
 - Request compression
 
 **Example Nginx Configuration:**
+
 ```nginx
 server {
     listen 80;
@@ -333,57 +323,43 @@ pm2 save
 pm2 startup
 ```
 
----
-
 ## Architecture Decisions
 
-#### Layered Architecture
+### Layered Architecture
 
 - **Controllers** handle HTTP requests/responses
 - **Services** contain business logic
 - **Repositories** handle database operations (all major entities)
 - **Clear separation** makes code testable and maintainable
 
-#### Repository Pattern
+### Repository Pattern
 
 - All major entities (users, videos, comments, tweets, playlists) use a repository layer for DB access
 - Enables easy mocking and unit testing
 
-#### Rate Limiting
+### Rate Limiting
 
 - Uses Redis for distributed rate limiting if available
 - Falls back to in-memory store if Redis is not configured
 - Configurable via environment variables
 
-#### File Uploads
+### File Uploads
 
 - Unique filenames for all uploads
 - Remote file cleanup on DB save failure
 - Robust error handling for all upload scenarios
 
-#### Stateless Design
+### Stateless Design
 
 - **No server-side sessions**
 - **JWT tokens** for authentication
 - **Enables horizontal scaling**
 
-#### Middleware Order
+### Middleware Order
 
 - **Security middleware** runs first
 - **Authentication** before authorization
 - **Error handling** runs last
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-feature`)
-3. Commit changes (`git commit -m 'Add new feature'`)
-4. Push to branch (`git push origin feature/new-feature`)
-5. Open a Pull Request
-
----
 
 ## Testing & Quality
 
@@ -397,15 +373,11 @@ npm test
 
 - All new features should include tests. See `tests/` for examples.
 
----
-
 ## File Uploads & Error Handling
 
 - All uploaded files (images, videos) use unique filenames to prevent collisions.
 - If a file is uploaded to remote storage (e.g., Cloudinary) but the DB save fails, the remote file is automatically deleted to prevent orphaned files.
 - All file upload errors are handled gracefully and return clear error messages.
-
----
 
 ## Redis Server (Windows) Setup & Commands
 
@@ -413,36 +385,52 @@ npm test
 
 Open Command Prompt and run:
 
-```
+```bash
 cd C:\redis
 redis-server.exe --dir C:\redis\data
 ```
 
 If you installed Redis with a config file, use:
-```
+
+```bash
 redis-server.exe redis.windows.conf
 ```
 
 ### Stop Redis Server
 
 1. Find the Redis process ID (PID):
-   ```
+
+   ```bash
    netstat -a -n -o | find "6379"
    ```
+
    (Note the PID in the last column)
+
 2. Stop the process:
-   ```
+
+   ```bash
    taskkill /PID <PID> /F
    ```
+
    Example:
-   ```
+
+   ```bash
    taskkill /PID 24400 /F
    ```
 
 ### Notes
+
 - Only one Redis server can run on port 6379 at a time.
 - If you see a bind error, Redis is already running.
 - For production, consider running Redis as a service or using Docker.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit changes (`git commit -m 'Add new feature'`)
+4. Push to branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
 
 ---
 
