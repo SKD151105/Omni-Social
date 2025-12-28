@@ -24,22 +24,23 @@ export const publishAVideo = asyncHandler(async (req, res) => {
 
     const videoFilePath = req.files?.videoFile?.[0]?.path;
     const thumbnailPath = req.files?.thumbnail?.[0]?.path;
-    // Extract duration from video file
-    const { getVideoDuration } = await import("../utils/videoMeta.js");
-    let duration;
-    try {
-        duration = await getVideoDuration(videoFilePath);
-    } catch (err) {
-        throw new ApiError(500, "Failed to extract video duration");
+
+    // Upload video to Cloudinary and get duration from response
+    const { uploadOnCloudinary } = await import("../utils/cloudinary.js");
+    const videoUpload = await uploadOnCloudinary(videoFilePath, { resource_type: "video" });
+    const thumbUpload = await uploadOnCloudinary(thumbnailPath);
+    if (!videoUpload || !thumbUpload) {
+        throw new ApiError(500, "Failed to upload media");
     }
+    const duration = videoUpload.duration;
 
     const video = await publishVideoService({
         ownerId: req.user._id,
         title,
         description,
         duration,
-        videoFilePath,
-        thumbnailPath,
+        videoFilePath: videoUpload.url,
+        thumbnailPath: thumbUpload.url,
     });
 
     res.status(201).json(new ApiResponse(201, video, "Video published"));

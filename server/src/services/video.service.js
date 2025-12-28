@@ -47,28 +47,16 @@ export const publishVideoService = async ({ ownerId, title, description, duratio
     if (![title, description, duration, videoFilePath, thumbnailPath].every(Boolean)) {
         throw new ApiError(400, "title, description, video file, thumbnail, and extracted duration are required");
     }
-
-    const { deleteFromCloudinary } = await import("../utils/cloudinary.js");
-    const videoUpload = await uploadOnCloudinary(videoFilePath);
-    const thumbUpload = await uploadOnCloudinary(thumbnailPath);
-
-    if (!videoUpload || !thumbUpload) {
-        throw new ApiError(500, "Failed to upload media");
-    }
-
     try {
         return await VideoRepo.createVideo({
             title: title.trim(),
             description: description.trim(),
             duration: Number(duration),
-            videoFile: videoUpload.url,
-            thumbnail: thumbUpload.url,
+            videoFile: videoFilePath,
+            thumbnail: thumbnailPath,
             owner: ownerId,
         });
     } catch (err) {
-        // Clean up remote files if DB save fails
-        if (videoUpload.public_id) await deleteFromCloudinary(videoUpload.public_id);
-        if (thumbUpload.public_id) await deleteFromCloudinary(thumbUpload.public_id);
         throw err;
     }
 };
@@ -92,7 +80,7 @@ export const updateVideoService = async ({ videoId, ownerId, title, description,
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
-    if (String(video.owner) !== String(ownerId)) {
+    if (String(video.owner?._id || video.owner) !== String(ownerId)) {
         throw new ApiError(403, "Not allowed to update this video");
     }
 
@@ -117,7 +105,7 @@ export const deleteVideoService = async ({ videoId, ownerId }) => {
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
-    if (String(video.owner) !== String(ownerId)) {
+    if (String(video.owner?._id || video.owner) !== String(ownerId)) {
         throw new ApiError(403, "Not allowed to delete this video");
     }
 
@@ -131,7 +119,7 @@ export const togglePublishStatusService = async ({ videoId, ownerId }) => {
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
-    if (String(video.owner) !== String(ownerId)) {
+    if (String(video.owner?._id || video.owner) !== String(ownerId)) {
         throw new ApiError(403, "Not allowed to update this video");
     }
 

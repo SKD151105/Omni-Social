@@ -62,7 +62,7 @@ export const updateCommentService = async ({ commentId, authorId, content }) => 
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
-    if (String(comment.author) !== String(authorId)) {
+    if (String(comment.author?._id || comment.author) !== String(authorId)) {
         throw new ApiError(403, "Not allowed to update this comment");
     }
 
@@ -79,7 +79,7 @@ export const deleteCommentService = async ({ commentId, authorId }) => {
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
-    if (String(comment.author) !== String(authorId)) {
+    if (String(comment.author?._id || comment.author) !== String(authorId)) {
         throw new ApiError(403, "Not allowed to delete this comment");
     }
 
