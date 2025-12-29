@@ -24,12 +24,25 @@ export const publishAVideo = asyncHandler(async (req, res) => {
 
     const videoFilePath = req.files?.videoFile?.[0]?.path;
     const thumbnailPath = req.files?.thumbnail?.[0]?.path;
-
-    // Upload video to Cloudinary and get duration from response
     const { uploadOnCloudinary } = await import("../utils/cloudinary.js");
-    const videoUpload = await uploadOnCloudinary(videoFilePath, { resource_type: "video" });
-    const thumbUpload = await uploadOnCloudinary(thumbnailPath);
+    // Helper to safely delete temp files
+    const safeUnlink = (filePath) => {
+        if (!filePath) return;
+        try { fs.unlinkSync(filePath); } catch (_) {}
+    };
+
+    let videoUpload = null, thumbUpload = null;
+    try {
+        videoUpload = await uploadOnCloudinary(videoFilePath, { resource_type: "video" });
+        thumbUpload = await uploadOnCloudinary(thumbnailPath);
+    } catch (e) {
+        safeUnlink(videoFilePath);
+        safeUnlink(thumbnailPath);
+        throw new ApiError(500, "Failed to upload media");
+    }
     if (!videoUpload || !thumbUpload) {
+        safeUnlink(videoFilePath);
+        safeUnlink(thumbnailPath);
         throw new ApiError(500, "Failed to upload media");
     }
     const duration = videoUpload.duration;
