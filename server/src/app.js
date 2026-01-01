@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import crypto from "crypto";
+import helmet from "helmet";
+import hpp from "hpp";
+import compression from "compression";
 import { logger } from "./utils/logger.js";
 import cookieParser from "cookie-parser";
 import { asyncHandler } from "./utils/asyncHandler.js";
@@ -19,9 +22,15 @@ import dashboardRouter from "./routes/dashboard.route.js";
 
 const app = express();
 
+const allowedOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "").split(",").map(o => o.trim()).filter(Boolean);
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || "*",
     credentials: true,
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true); // allow same-origin/non-browser
+        if (!allowedOrigins.length) return callback(new Error("CORS: Origin not allowed"));
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error("CORS: Origin not allowed"));
+    },
 };
 
 // Correlation ID middleware
@@ -32,6 +41,9 @@ app.use((req, _res, next) => {
 
 app.use(requestLogger);
 app.use(getRateLimiter());
+app.use(helmet());
+app.use(hpp());
+app.use(compression());
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));

@@ -166,8 +166,8 @@ export const getCurrentUserService = async ({ currentUser }) => {
 };
 
 export const updateAccountDetailsService = async ({ userId, fullName, email }) => {
-    if (!fullName || !email) {
-        throw new ApiError(400, "Full name and email are required");
+    if (!fullName && !email) {
+        throw new ApiError(400, "Provide at least one field to update");
     }
 
     const user = await userRepository.findById(userId);
@@ -175,8 +175,12 @@ export const updateAccountDetailsService = async ({ userId, fullName, email }) =
         throw new ApiError(404, "User not found");
     }
 
-    user.fullName = fullName;
-    user.email = email;
+    if (fullName) {
+        user.fullName = fullName;
+    }
+    if (email) {
+        user.email = email;
+    }
     await userRepository.saveUser(user, { validateBeforeSave: false });
 
     return userRepository.findById(user._id, "-password -refreshToken");

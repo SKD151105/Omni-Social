@@ -10,7 +10,7 @@ const updateVideoSchema = {
     description: { type: "string", minLength: 0, transform: "trim" },
 };
 import { Router } from "express";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyJWT, optionallyVerifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import {
     getAllVideos,
@@ -23,7 +23,7 @@ import {
 
 const router = Router();
 
-router.get("/", getAllVideos);
+router.get("/", optionallyVerifyJWT, getAllVideos);
 
 router.post(
     "/",
@@ -36,7 +36,7 @@ router.post(
     publishAVideo
 );
 
-router.get("/:videoId", getVideoById);
+router.get("/:videoId", optionallyVerifyJWT, getVideoById);
 
 router.patch(
     "/:videoId",

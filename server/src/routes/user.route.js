@@ -11,6 +11,8 @@ const registerSchema = {
     password: { required: true, type: "string", minLength: 6 },
 };
 const loginSchema = {
+    username: { type: "string", minLength: 3, transform: "trim" },
+    email: { type: "string", pattern: "^.+@.+\\..+$", transform: "trim" },
     password: { required: true, type: "string" },
 };
 const changePasswordSchema = {

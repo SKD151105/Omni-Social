@@ -7,9 +7,15 @@ const VideoSchema = new Schema(
             type: String, // cloudinary url
             required: true,
         },
+        videoPublicId: {
+            type: String, // cloudinary public_id for video
+        },
         thumbnail: {
             type: String, // cloudinary url
             required: true,
+        },
+        thumbnailPublicId: {
+            type: String, // cloudinary public_id for thumbnail
         },
         title: {
             type: String,

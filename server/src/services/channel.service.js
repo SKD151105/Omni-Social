@@ -2,11 +2,17 @@ import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
 import { Subscription } from "../models/subscription.model.js";
 import { Like } from "../models/like.model.js";
+import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 
 export const getChannelStatsService = async ({ channelId }) => {
     if (!mongoose.isValidObjectId(channelId)) {
         throw new ApiError(400, "Invalid channel id");
+    }
+
+    const channelExists = await User.exists({ _id: channelId });
+    if (!channelExists) {
+        throw new ApiError(404, "Channel not found");
     }
 
     const [videos, subscriberCount] = await Promise.all([
@@ -28,6 +34,11 @@ export const getChannelStatsService = async ({ channelId }) => {
 export const getChannelVideosService = async ({ channelId, page = 1, limit = 10 }) => {
     if (!mongoose.isValidObjectId(channelId)) {
         throw new ApiError(400, "Invalid channel id");
+    }
+
+    const channelExists = await User.exists({ _id: channelId });
+    if (!channelExists) {
+        throw new ApiError(404, "Channel not found");
     }
 
     const pageNum = Number(page) || 1;

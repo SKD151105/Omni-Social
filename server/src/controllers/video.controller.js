@@ -1,3 +1,4 @@
+import fs from "fs";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -11,8 +12,9 @@ import {
 } from "../services/video.service.js";
 
 export const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-    const result = await getAllVideosService({ page, limit, query, sortBy, sortType, userId });
+    const { page = 1, limit = 10, query, sortBy, sortType, userId, includeUnpublished } = req.query;
+    const includeDrafts = String(includeUnpublished).toLowerCase() === "true";
+    const result = await getAllVideosService({ page, limit, query, sortBy, sortType, userId, includeUnpublished: includeDrafts, requester: req.user });
     res.status(200).json(new ApiResponse(200, result, "Videos fetched"));
 });
 
@@ -24,7 +26,7 @@ export const publishAVideo = asyncHandler(async (req, res) => {
 
     const videoFilePath = req.files?.videoFile?.[0]?.path;
     const thumbnailPath = req.files?.thumbnail?.[0]?.path;
-    const { uploadOnCloudinary } = await import("../utils/cloudinary.js");
+    const { uploadOnCloudinary, deleteFromCloudinary } = await import("../utils/cloudinary.js");
     // Helper to safely delete temp files
     const safeUnlink = (filePath) => {
         if (!filePath) return;
@@ -47,21 +49,33 @@ export const publishAVideo = asyncHandler(async (req, res) => {
     }
     const duration = videoUpload.duration;
 
-    const video = await publishVideoService({
-        ownerId: req.user._id,
-        title,
-        description,
-        duration,
-        videoFilePath: videoUpload.url,
-        thumbnailPath: thumbUpload.url,
-    });
+    try {
+        const video = await publishVideoService({
+            ownerId: req.user._id,
+            title,
+            description,
+            duration,
+            videoFilePath: videoUpload.url,
+            thumbnailPath: thumbUpload.url,
+            videoPublicId: videoUpload.public_id,
+            thumbnailPublicId: thumbUpload.public_id,
+        });
 
-    res.status(201).json(new ApiResponse(201, video, "Video published"));
+        res.status(201).json(new ApiResponse(201, video, "Video published"));
+    } catch (err) {
+        // Clean up remote uploads if DB save fails
+        if (videoUpload?.public_id) await deleteFromCloudinary(videoUpload.public_id);
+        if (thumbUpload?.public_id) await deleteFromCloudinary(thumbUpload.public_id);
+        throw err;
+    } finally {
+        safeUnlink(videoFilePath);
+        safeUnlink(thumbnailPath);
+    }
 });
 
 export const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const video = await getVideoByIdService({ videoId });
+    const video = await getVideoByIdService({ videoId, requester: req.user });
     res.status(200).json(new ApiResponse(200, video, "Video fetched"));
 });
 

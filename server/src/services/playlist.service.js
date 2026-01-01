@@ -103,6 +103,9 @@ export const updatePlaylistService = async ({ playlistId, ownerId, name, descrip
     if (String(playlist.owner?._id || playlist.owner) !== String(ownerId)) {
         throw new ApiError(403, "Not allowed to modify this playlist");
     }
+    if (!name && description === undefined) {
+        throw new ApiError(400, "Provide at least one field to update");
+    }
     return PlaylistRepo.updatePlaylistById(playlistId, {
         ...(name?.trim() && { name: name.trim() }),
         ...(description !== undefined && { description: description?.trim() || "" }),

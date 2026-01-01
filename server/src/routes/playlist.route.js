@@ -4,6 +4,10 @@ const playlistSchema = {
     name: { required: true, type: "string", minLength: 2, transform: "trim" },
     description: { type: "string", minLength: 0, transform: "trim" },
 };
+const updatePlaylistSchema = {
+    name: { type: "string", minLength: 2, transform: "trim" },
+    description: { type: "string", minLength: 0, transform: "trim" },
+};
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
@@ -21,7 +25,7 @@ const router = Router();
 router.post("/", verifyJWT, validateBody(playlistSchema), createPlaylist);
 router.get("/user/:userId", getUserPlaylists);
 router.get("/:playlistId", getPlaylistById);
-router.patch("/:playlistId", verifyJWT, validateBody(playlistSchema), updatePlaylist);
+router.patch("/:playlistId", verifyJWT, validateBody(updatePlaylistSchema), updatePlaylist);
 router.delete("/:playlistId", verifyJWT, deletePlaylist);
 router.post("/:playlistId/videos/:videoId", verifyJWT, addVideoToPlaylist);
 router.delete("/:playlistId/videos/:videoId", verifyJWT, removeVideoFromPlaylist);

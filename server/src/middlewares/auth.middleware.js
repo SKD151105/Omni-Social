@@ -31,3 +31,22 @@ export const verifyJWT = asyncHandler(async (req, _res, next) => {
     }
     next();
 });
+
+// Optional auth: attach req.user if a valid token exists, otherwise continue without error
+export const optionallyVerifyJWT = asyncHandler(async (req, _res, next) => {
+    const authHeader = req.header("Authorization");
+    const tokenFromHeader = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+    if (!tokenFromHeader) return next();
+
+    try {
+        const decoded = jwt.verify(tokenFromHeader, process.env.ACCESS_TOKEN_SECRET);
+        const user = await User.findById(decoded?.id).select("-password -refreshToken");
+        if (user) {
+            req.user = user.toObject();
+            if (decoded.role) req.user.role = decoded.role;
+        }
+    } catch (_err) {
+        // Ignore invalid/expired token and continue as guest
+    }
+    next();
+});

@@ -46,6 +46,10 @@ const loginUser = asyncHandler(async (req, res) => {
     const usernameInput = req.body?.username?.trim().toLowerCase();
     const { password } = req.body;
 
+    if (!emailInput && !usernameInput) {
+        throw new ApiError(400, "Email or username is required");
+    }
+
     const { safeUser, accessToken, refreshToken } = await loginUserService({ emailInput, usernameInput, password });
 
     res
