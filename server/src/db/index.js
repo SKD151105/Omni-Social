@@ -8,6 +8,10 @@ const { MONGODB_URI = DEFAULT_URI } = process.env;
 
 const connectDB = async (uri = MONGODB_URI) => {
     try {
+        if (!process.env.MONGODB_URI) {
+            logger.warn("MONGODB_URI not set; using default local URI", { uri: DEFAULT_URI });
+        }
+
         await mongoose.connect(uri, { dbName: DB_NAME });
         // Logging a concise, non-sensitive summary of the active Mongo connection
         logger.info("MongoDB connected", {

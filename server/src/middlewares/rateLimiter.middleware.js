@@ -1,5 +1,6 @@
 // In-memory rate limiter (default/fallback)
 import { ApiError } from "../utils/ApiError.js";
+import { logger } from "../utils/logger.js";
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX) || 100;
 const hits = new Map();
@@ -67,6 +68,7 @@ export { redisRateLimiter };
 
 // Patch: Graceful fallback to memory limiter if Redis is unavailable
 let useRedis = !!redisRateLimiter;
+let loggedMode = false;
 if (redisRateLimiter && redisRateLimiter.store && redisRateLimiter.store.client) {
     try {
         redisRateLimiter.store.client.on('error', (err) => {
@@ -82,7 +84,12 @@ if (redisRateLimiter && redisRateLimiter.store && redisRateLimiter.store.client)
     }
 }
 export function getRateLimiter() {
-    return (useRedis && redisRateLimiter) ? redisRateLimiter : memoryRateLimiter;
+    const usingRedis = (useRedis && redisRateLimiter);
+    if (!loggedMode) {
+        logger.info("Rate limiter selected", { mode: usingRedis ? "redis" : "memory" });
+        loggedMode = true;
+    }
+    return usingRedis ? redisRateLimiter : memoryRateLimiter;
 }
 
 // Usage: import { memoryRateLimiter, redisRateLimiter } and use redisRateLimiter if available, else fallback to memoryRateLimiter.

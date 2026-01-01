@@ -22,13 +22,27 @@ import dashboardRouter from "./routes/dashboard.route.js";
 
 const app = express();
 
-const allowedOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "").split(",").map(o => o.trim()).filter(Boolean);
+const allowedOriginsRaw = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "").split(",").map(o => o.trim()).filter(Boolean);
+const allowAll = allowedOriginsRaw.includes("*");
+const allowedOrigins = allowAll ? [] : allowedOriginsRaw;
+if (!allowAll && allowedOrigins.length === 0) {
+    logger.warn("CORS: no allowed origins configured; browser requests with Origin may be blocked", {
+        configured: process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "",
+    });
+} else {
+    logger.info("CORS configuration", { allowAll, allowedOrigins });
+}
 const corsOptions = {
     credentials: true,
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // allow same-origin/non-browser
-        if (!allowedOrigins.length) return callback(new Error("CORS: Origin not allowed"));
+        // allow same-origin/non-browser
+        if (!origin) return callback(null, true);
+        if (allowAll) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
+
+        logger.warn("CORS blocked origin", { origin });
+        // In non-production, fall back to allowing to reduce local friction
+        if (process.env.NODE_ENV !== "production") return callback(null, true);
         return callback(new Error("CORS: Origin not allowed"));
     },
 };
@@ -36,6 +50,11 @@ const corsOptions = {
 // Correlation ID middleware
 app.use((req, _res, next) => {
     req.requestId = req.headers["x-request-id"] || crypto.randomUUID();
+    next();
+});
+// Always echo request id to help clients correlate
+app.use((req, res, next) => {
+    res.setHeader("X-Request-Id", req.requestId);
     next();
 });
 
