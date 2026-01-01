@@ -91,9 +91,11 @@ export const getVideoByIdService = async ({ videoId, requester }) => {
 
     // Record watch history for authenticated users when they view a video they can access
     if (requester?._id) {
+        // Keep a bounded watch history (latest 200, no blowup)
+        await User.updateOne({ _id: requester._id }, { $pull: { watchHistory: video._id } });
         await User.updateOne(
             { _id: requester._id },
-            { $addToSet: { watchHistory: video._id } }
+            { $push: { watchHistory: { $each: [video._id], $position: 0, $slice: 200 } } }
         );
     }
 

@@ -2,12 +2,12 @@ import { validateBody } from "../middlewares/validation.middleware.js";
 
 const videoSchema = {
     title: { required: true, type: "string", minLength: 2, transform: "trim" },
-    description: { type: "string", minLength: 0, transform: "trim" },
+    description: { required: true, type: "string", minLength: 10, transform: "trim" },
     // duration removed, will be extracted server-side
 };
 const updateVideoSchema = {
     title: { type: "string", minLength: 2, transform: "trim" },
-    description: { type: "string", minLength: 0, transform: "trim" },
+    description: { type: "string", minLength: 10, transform: "trim" },
 };
 import { Router } from "express";
 import { verifyJWT, optionallyVerifyJWT } from "../middlewares/auth.middleware.js";

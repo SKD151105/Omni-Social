@@ -1,14 +1,21 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 import fs from "fs";
 import { ApiError } from "../utils/ApiError.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import * as userRepository from "../repositories/user.repository.js";
 
 const generateAuthTokens = (user) => {
+    const refreshTokenId = crypto.randomUUID();
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-    return { accessToken, refreshToken };
+    const refreshToken = jwt.sign({ id: user._id, jti: refreshTokenId }, process.env.REFRESH_TOKEN_SECRET, {
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
+    });
+    return { accessToken, refreshToken, refreshTokenId };
 };
+
+const hashRefreshToken = async (token) => bcrypt.hash(token, 10);
 
 const safeUnlink = (filePath) => {
     if (!filePath) return;
@@ -56,7 +63,7 @@ export const registerUserService = async ({ fullName, email, username, password,
                 coverImageId: coverImageUpload?.public_id || ""
             });
 
-            const savedUser = await userRepository.findById(user._id, "-password -refreshToken");
+            const savedUser = await userRepository.findById(user._id, "-password -refreshTokenHash -refreshTokenId");
             if (!savedUser) {
                 throw new ApiError(500, "Failed to register user");
             }
@@ -89,10 +96,11 @@ export const loginUserService = async ({ emailInput, usernameInput, password }) 
         throw new ApiError(401, "Invalid credentials");
     }
 
-    const { accessToken, refreshToken } = generateAuthTokens(user);
-    await userRepository.saveRefreshToken(user, refreshToken);
+    const { accessToken, refreshToken, refreshTokenId } = generateAuthTokens(user);
+    const refreshTokenHash = await hashRefreshToken(refreshToken);
+    await userRepository.saveRefreshToken(user, { tokenHash: refreshTokenHash, tokenId: refreshTokenId });
 
-    const safeUser = await userRepository.findById(user._id, "-password -refreshToken");
+    const safeUser = await userRepository.findById(user._id, "-password -refreshTokenHash -refreshTokenId");
 
     return { safeUser, accessToken, refreshToken };
 };
@@ -102,13 +110,26 @@ export const logoutUserService = async ({ refreshToken, currentUserId }) => {
         throw new ApiError(400, "Refresh token not found");
     }
 
-    const user = await userRepository.findByRefreshToken(refreshToken);
-    if (!user) {
+    let decoded;
+    try {
+        decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    } catch (_err) {
+        return { userCleared: false };
+    }
+
+    const user = await userRepository.findById(decoded?.id);
+    if (!user || !user.refreshTokenId) {
         return { userCleared: false };
     }
 
     if (currentUserId && String(user._id) !== String(currentUserId)) {
         throw new ApiError(403, "Token does not belong to this user");
+    }
+
+    const matchesId = user.refreshTokenId === decoded?.jti;
+    const matchesHash = user.refreshTokenHash && (await bcrypt.compare(refreshToken, user.refreshTokenHash));
+    if (!matchesId || !matchesHash) {
+        return { userCleared: false };
     }
 
     await userRepository.clearRefreshToken(user);
@@ -123,12 +144,20 @@ export const refreshAccessTokenService = async ({ incomingRefreshToken }) => {
     try {
         const decoded = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
         const user = await userRepository.findById(decoded?.id);
-        if (!user || user.refreshToken !== incomingRefreshToken) {
+        if (!user || !user.refreshTokenId || !user.refreshTokenHash) {
             throw new ApiError(401, "Refresh token does not match");
         }
-        const { accessToken, refreshToken } = generateAuthTokens(user);
 
-        await userRepository.saveRefreshToken(user, refreshToken);
+        const matchesId = user.refreshTokenId === decoded?.jti;
+        const matchesHash = await bcrypt.compare(incomingRefreshToken, user.refreshTokenHash);
+        if (!matchesId || !matchesHash) {
+            throw new ApiError(401, "Refresh token does not match");
+        }
+
+        const { accessToken, refreshToken, refreshTokenId } = generateAuthTokens(user);
+        const refreshTokenHash = await hashRefreshToken(refreshToken);
+
+        await userRepository.saveRefreshToken(user, { tokenHash: refreshTokenHash, tokenId: refreshTokenId });
 
         return { accessToken, refreshToken };
     } catch (err) {
@@ -155,7 +184,7 @@ export const changePasswordService = async ({ userId, oldPassword, newPassword }
     }
 
     user.password = newPassword;
-    await userRepository.saveUser(user, { validateBeforeSave: false });
+    await userRepository.saveUser(user, { validateBeforeSave: true });
 };
 
 export const getCurrentUserService = async ({ currentUser }) => {
@@ -175,15 +204,22 @@ export const updateAccountDetailsService = async ({ userId, fullName, email }) =
         throw new ApiError(404, "User not found");
     }
 
+    if (email) {
+        const duplicate = await userRepository.findByEmailExcludingId(email, userId);
+        if (duplicate) {
+            throw new ApiError(409, "Email already in use");
+        }
+    }
+
     if (fullName) {
         user.fullName = fullName;
     }
     if (email) {
         user.email = email;
     }
-    await userRepository.saveUser(user, { validateBeforeSave: false });
+    await userRepository.saveUser(user, { validateBeforeSave: true });
 
-    return userRepository.findById(user._id, "-password -refreshToken");
+    return userRepository.findById(user._id, "-password -refreshTokenHash -refreshTokenId");
 };
 
 export const updateUserProfileService = async ({ userId, fullName, email, avatarLocalPath, coverImageLocalPath }) => {
@@ -196,6 +232,15 @@ export const updateUserProfileService = async ({ userId, fullName, email, avatar
         safeUnlink(avatarLocalPath);
         safeUnlink(coverImageLocalPath);
         throw new ApiError(404, "User not found");
+    }
+
+    if (email) {
+        const duplicate = await userRepository.findByEmailExcludingId(email, userId);
+        if (duplicate) {
+            safeUnlink(avatarLocalPath);
+            safeUnlink(coverImageLocalPath);
+            throw new ApiError(409, "Email already in use");
+        }
     }
 
     let avatarUpload, coverImageUpload;
@@ -234,7 +279,7 @@ export const updateUserProfileService = async ({ userId, fullName, email, avatar
             if (email) {
                 user.email = email;
             }
-            await userRepository.saveUser(user, { validateBeforeSave: false });
+            await userRepository.saveUser(user, { validateBeforeSave: true });
             return userRepository.findById(user._id, "fullName email username avatar coverImage");
         } catch (err) {
             // Clean up remote files if DB save fails

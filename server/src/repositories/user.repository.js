@@ -15,19 +15,24 @@ export const createUser = async (data) => User.create(data);
 
 export const findById = async (id, projection) => User.findById(id).select(projection);
 
-export const findByRefreshToken = async (refreshToken) => User.findOne({ refreshToken });
+export const findByRefreshTokenId = async (refreshTokenId) => User.findOne({ refreshTokenId });
 
-export const saveRefreshToken = async (user, refreshToken) => {
-    user.refreshToken = refreshToken;
+export const saveRefreshToken = async (user, { tokenHash, tokenId }) => {
+    user.refreshTokenHash = tokenHash;
+    user.refreshTokenId = tokenId;
     return user.save({ validateBeforeSave: false });
 };
 
 export const clearRefreshToken = async (user) => {
-    user.refreshToken = undefined;
+    user.refreshTokenHash = undefined;
+    user.refreshTokenId = undefined;
     return user.save({ validateBeforeSave: false });
 };
 
 export const saveUser = async (user, options = {}) => user.save(options);
+
+export const findByEmailExcludingId = async (email, excludeId) =>
+    User.findOne({ email, _id: { $ne: excludeId } });
 
 export const aggregateChannelProfile = async ({ username, subscriberId }) => {
     const subscriberObjectId = subscriberId ? toObjectId(subscriberId) : null;

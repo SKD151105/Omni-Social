@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -17,7 +18,33 @@ import {
 const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
+    path: "/",
+};
+
+const csrfCookieOptions = {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+};
+
+const CSRF_HEADER = "x-csrf-token";
+const generateCsrfToken = () => crypto.randomBytes(24).toString("hex");
+
+const setSessionCookies = (res, refreshToken) => {
+    const csrfToken = generateCsrfToken();
+    res.cookie("refreshToken", refreshToken, cookieOptions);
+    res.cookie("csrfToken", csrfToken, csrfCookieOptions);
+    return csrfToken;
+};
+
+const assertCsrf = (req) => {
+    const headerToken = req.get(CSRF_HEADER);
+    const cookieToken = req.cookies?.csrfToken;
+    if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+        throw new ApiError(403, "CSRF token missing or invalid");
+    }
 };
 
 // Either export at the end or inline (but do it everywhere consistently)
@@ -53,9 +80,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { safeUser, accessToken, refreshToken } = await loginUserService({ emailInput, usernameInput, password });
 
+    setSessionCookies(res, refreshToken);
+
     res
         .status(200)
-        .cookie("refreshToken", refreshToken, cookieOptions)
         .json(new ApiResponse(200, { user: safeUser, accessToken }, "User logged in successfully"));
 });
 
@@ -66,16 +94,19 @@ const logoutUser = asyncHandler(async (req, res) => {
     res
         .status(200)
         .clearCookie("refreshToken", cookieOptions)
+        .clearCookie("csrfToken", csrfCookieOptions)
         .json(new ApiResponse(200, null, userCleared ? "Logged out" : "Logged out"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    assertCsrf(req);
+    const incomingRefreshToken = req.cookies?.refreshToken;
     const { accessToken, refreshToken } = await refreshAccessTokenService({ incomingRefreshToken });
+
+    setSessionCookies(res, refreshToken);
 
     return res
         .status(200)
-        .cookie("refreshToken", refreshToken, cookieOptions)
         .json(new ApiResponse(200, { accessToken }, "Access token refreshed successfully"));
 });
 

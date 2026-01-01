@@ -22,16 +22,14 @@ import dashboardRouter from "./routes/dashboard.route.js";
 
 const app = express();
 
-const allowedOriginsRaw = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "").split(",").map(o => o.trim()).filter(Boolean);
+const fallbackOrigins = ["http://localhost:3000", "http://127.0.0.1:3000"];
+const allowedOriginsRaw = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map(o => o.trim())
+    .filter(Boolean);
 const allowAll = allowedOriginsRaw.includes("*");
-const allowedOrigins = allowAll ? [] : allowedOriginsRaw;
-if (!allowAll && allowedOrigins.length === 0) {
-    logger.warn("CORS: no allowed origins configured; browser requests with Origin may be blocked", {
-        configured: process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "",
-    });
-} else {
-    logger.info("CORS configuration", { allowAll, allowedOrigins });
-}
+const allowedOrigins = allowAll ? [] : (allowedOriginsRaw.length ? allowedOriginsRaw : fallbackOrigins);
+logger.info("CORS configuration", { allowAll, allowedOrigins });
 const corsOptions = {
     credentials: true,
     origin: (origin, callback) => {
@@ -41,8 +39,6 @@ const corsOptions = {
         if (allowedOrigins.includes(origin)) return callback(null, true);
 
         logger.warn("CORS blocked origin", { origin });
-        // In non-production, fall back to allowing to reduce local friction
-        if (process.env.NODE_ENV !== "production") return callback(null, true);
         return callback(new Error("CORS: Origin not allowed"));
     },
 };
