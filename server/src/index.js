@@ -20,12 +20,10 @@ const listenAsync = (port) => {
 // Main startup flow: connect DB first, then start server
 const startServer = async () => {
     try {
-        await connectDB(); 
-        logger.info("Database connection established");
-
+        await connectDB();
         await listenAsync(PORT); // start server only after DB is ready
     } catch (error) {
-        logger.error("Server startup error", { error });
+        logger.error("Server startup error:", { error });
         process.exit(1);
     }
 };
