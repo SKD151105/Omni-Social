@@ -15,7 +15,6 @@ Omni-Social is a robust, scalable backend for a modern social media platform, en
   <img src="https://img.shields.io/badge/Cloudinary-File%20Storage-3448C5?logo=cloudinary&logoColor=white" alt="Cloudinary" />
   <img src="https://img.shields.io/badge/Redis-Rate%20Limiting-DC382D?logo=redis&logoColor=white" alt="Redis (Rate Limiting)" />
   <img src="https://img.shields.io/badge/Helmet-HPP--CORS-6E5494?logo=security&logoColor=white" alt="Security" />
-  <img src="https://img.shields.io/badge/Jest%20%26%20Supertest-Testing-C21325?logo=jest&logoColor=white" alt="Jest & Supertest" />
 </p>
 
 
