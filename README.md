@@ -1,6 +1,23 @@
+
 # Omni-Social
 
-A social media backend built with Express.js and MongoDB. This project implements user authentication, video publishing, comments, subscriptions, and basic social features.
+
+Omni-Social is a robust, scalable backend for a modern social media platform, engineered with Express.js and MongoDB. It powers seamless user authentication, secure media uploads, interactive video sharing, real-time comments, channel subscriptions, playlists, and analytics—delivering all the essential features for a dynamic, community-driven experience.
+  
+<br />
+
+<p align="left">
+  <img src="https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Express.js-5.x-black?logo=express&logoColor=white" alt="Express.js" />
+  <img src="https://img.shields.io/badge/MongoDB-6%2B-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Mongoose-ODM-880000?logo=mongoose&logoColor=white" alt="Mongoose" />
+  <img src="https://img.shields.io/badge/JWT-Auth-FFB300?logo=jsonwebtokens&logoColor=white" alt="JWT" />
+  <img src="https://img.shields.io/badge/Cloudinary-File%20Storage-3448C5?logo=cloudinary&logoColor=white" alt="Cloudinary" />
+  <img src="https://img.shields.io/badge/Redis-Rate%20Limiting-DC382D?logo=redis&logoColor=white" alt="Redis (Rate Limiting)" />
+  <img src="https://img.shields.io/badge/Helmet-HPP--CORS-6E5494?logo=security&logoColor=white" alt="Security" />
+  <img src="https://img.shields.io/badge/Jest%20%26%20Supertest-Testing-C21325?logo=jest&logoColor=white" alt="Jest & Supertest" />
+</p>
+
 
 ## Overview
 
@@ -388,10 +405,6 @@ pm2 save
 pm2 startup
 ```
 
-## License
-
-This project is licensed under the MIT License.
-
 ---
-
+  
 Built with Express.js and MongoDB for learning backend development.
