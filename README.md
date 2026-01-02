@@ -23,21 +23,20 @@ Omni-Social is a robust, scalable backend for a modern social media platform, en
 I've built this backend as a RESTful API that handles user management, media uploads, and social interactions. The codebase is organized into controllers, services, and repositories to keep business logic separate from database operations.
 
 ## Contents
-- Overview
-- Features
-- Project Structure
-- Getting Started
-- Environment Variables
-- Running the Application
-- Testing the API
-- API Endpoints
-- Technical Stack
-- Middleware Flow
-- Architecture
-- Testing
-- Future Improvements
-- Deployment
-- License
+- [Overview](#overview)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Running the Application](#running-the-application)
+- [Testing the API](#testing-the-api)
+- [API Endpoints](#api-endpoints)
+- [Technical Stack](#technical-stack)
+- [Middleware Flow](#middleware-flow)
+- [Architecture](#architecture)
+- [Testing](#testing)
+- [Future Improvements](#future-improvements)
+- [Deployment](#deployment)
 
 ## Features
 
