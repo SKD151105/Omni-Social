@@ -34,7 +34,6 @@ I've built this backend as a RESTful API that handles user management, media upl
 - [Technical Stack](#technical-stack)
 - [Middleware Flow](#middleware-flow)
 - [Architecture](#architecture)
-- [Testing](#testing)
 - [Future Improvements](#future-improvements)
 - [Deployment](#deployment)
 
@@ -97,7 +96,6 @@ server/
 │   ├── routes/             # API routes
 │   ├── utils/              # Helper functions
 │   └── constants.js        # Shared constants
-├── tests/                  # Test files
 └── .env                    # Environment variables
 ```
 
@@ -322,16 +320,6 @@ This separation allows:
 - Mocking database operations in tests
 - Changing database implementation without touching business logic
 - Different developers working on different layers
-
-## Testing
-
-Basic test setup is included with Jest and Supertest. Run tests with:
-
-```bash
-npm test
-```
-
-Current test coverage is minimal. Tests exist for basic authentication flows and some service functions.
 
 ## Future Improvements
 

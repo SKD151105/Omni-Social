@@ -29,16 +29,13 @@ const allowedOriginsRaw = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN |
     .filter(Boolean);
 const allowAll = allowedOriginsRaw.includes("*");
 const allowedOrigins = allowAll ? [] : (allowedOriginsRaw.length ? allowedOriginsRaw : fallbackOrigins);
-logger.info("CORS configuration", { allowAll, allowedOrigins });
+
 const corsOptions = {
     credentials: true,
     origin: (origin, callback) => {
-        // allow same-origin/non-browser
-        if (!origin) return callback(null, true);
+        if (!origin) return callback(null, true); // same-origin / tools
         if (allowAll) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
-
-        logger.warn("CORS blocked origin", { origin });
         return callback(new Error("CORS: Origin not allowed"));
     },
 };
@@ -46,11 +43,6 @@ const corsOptions = {
 // Correlation ID middleware
 app.use((req, _res, next) => {
     req.requestId = req.headers["x-request-id"] || crypto.randomUUID();
-    next();
-});
-// Always echo request id to help clients correlate
-app.use((req, res, next) => {
-    res.setHeader("X-Request-Id", req.requestId);
     next();
 });
 
