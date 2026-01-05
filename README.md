@@ -23,20 +23,48 @@ Omni-Social is a robust, scalable backend for a modern social media platform, en
 I've built this backend as a RESTful API that handles user management, media uploads, and social interactions. The codebase is organized into controllers, services, and repositories to keep business logic separate from database operations.
 
 ## Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Redis Setup](#redis-setup)
-- [Running the Application](#running-the-application)
-- [Testing the API](#testing-the-api)
-- [API Endpoints](#api-endpoints)
-- [Technical Stack](#technical-stack)
-- [Middleware Flow](#middleware-flow)
-- [Architecture](#architecture)
-- [Future Improvements](#future-improvements)
-- [Deployment](#deployment)
+- [Omni-Social](#omni-social)
+  - [Overview](#overview)
+  - [Contents](#contents)
+  - [Features](#features)
+    - [Authentication](#authentication)
+    - [User Management](#user-management)
+    - [Video Features](#video-features)
+    - [Social Features](#social-features)
+    - [Security Measures](#security-measures)
+    - [Architecture](#architecture)
+  - [Project Structure](#project-structure)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [Environment Variables](#environment-variables)
+  - [Redis Setup](#redis-setup)
+    - [Running the Application](#running-the-application)
+    - [Testing the API](#testing-the-api)
+  - [API Endpoints](#api-endpoints)
+    - [Authentication](#authentication-1)
+    - [User Management](#user-management-1)
+    - [Videos](#videos)
+    - [Comments](#comments)
+    - [Likes](#likes)
+    - [Subscriptions](#subscriptions)
+    - [Playlists](#playlists)
+    - [Tweets](#tweets)
+    - [Dashboard](#dashboard)
+  - [Technical Stack](#technical-stack)
+  - [Middleware Flow](#middleware-flow)
+  - [Architecture](#architecture-1)
+  - [Future Improvements](#future-improvements)
+    - [Testing](#testing)
+    - [Security](#security)
+    - [Features](#features-1)
+    - [Performance](#performance)
+    - [Infrastructure](#infrastructure)
+    - [Code Quality](#code-quality)
+    - [Observability](#observability)
+    - [Data Governance](#data-governance)
+    - [Scalability](#scalability)
+  - [Deployment](#deployment)
 
 ## Features
 
@@ -384,7 +412,6 @@ The following features could be added to enhance the project:
 - Publish comprehensive API docs (OpenAPI/Swagger) and keep them versioned with the code
 - Implement structured logging (JSON) shipped to a log aggregator (ELK/Vector/Loki) with correlation IDs
 - Add monitoring and alerting (Prometheus + Grafana) for latency, error rate, queue depth, and Cloudinary/Redis health
-- Create automated backups with retention, PITR (if using managed DB), and documented recovery drills
 
 ### Code Quality
 - Define an API versioning strategy (prefix-based routing, deprecation headers, and changelog)
