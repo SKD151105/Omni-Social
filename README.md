@@ -28,6 +28,7 @@ I've built this backend as a RESTful API that handles user management, media upl
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
+- [Redis Setup](#redis-setup)
 - [Running the Application](#running-the-application)
 - [Testing the API](#testing-the-api)
 - [API Endpoints](#api-endpoints)
@@ -161,6 +162,29 @@ USE_REDIS=false
 
 # Logging
 LOG_LEVEL=debug
+```
+
+## Redis Setup
+
+Redis is optional and used for distributed rate limiting; if disabled, the app falls back to in-memory limits. To enable Redis:
+
+1. Install and run Redis (local `redis-server` or managed service like Redis Cloud).
+2. Set `USE_REDIS=true` and configure `REDIS_URL` in your `.env` (e.g., `redis://localhost:6379` or your managed endpoint).
+3. Keep `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS` tuned to your expected traffic; these settings apply to the Redis-backed limiter.
+4. Deploy all app instances with the same Redis URL so rate limiting is enforced consistently across nodes.
+5. Monitor Redis health—timeouts or disconnects will fall back to in-memory limiting on that instance only, which can create uneven enforcement.
+
+Local start commands (PowerShell/terminal):
+
+```bash
+# Start Redis with default config (foreground)
+redis-server
+
+# Or start with a custom config
+redis-server /path/to/redis.conf
+
+# Health check
+redis-cli ping
 ```
 
 ### Running the Application
@@ -326,49 +350,64 @@ This separation allows:
 The following features could be added to enhance the project:
 
 ### Testing
-- Increase test coverage to at least 80%
-- Add integration tests for complete user flows (register → login → refresh → logout)
-- Add tests for video upload, update, and deletion
-- Test authorization rules for protected endpoints
-- Add load testing for rate limiter behavior
+- Increase test coverage to at least 80%, prioritizing services, controllers, and middleware edge cases
+- Add integration tests for end-to-end user journeys (register → login → refresh → logout → delete) including cookie assertions
+- Add tests for video upload/update/delete with Cloudinary failure scenarios and cleanup assertions
+- Test authorization rules for every protected endpoint and ensure role/ownership checks fail safely
+- Add load and soak tests to validate rate limiter behavior under burst and sustained traffic
 
 ### Security
-- Implement email verification for new registrations
-- Add password reset functionality via email
-- Consider implementing OAuth2 providers (Google, GitHub)
-- Add IP-based suspicious activity detection
-- Implement account lockout after failed login attempts
+- Implement email verification for new registrations, including signed magic links and resend throttling
+- Add password reset flow with short-lived signed tokens, device metadata capture, and token revocation on use
+- Add OAuth2 providers (Google, GitHub) with account linking/merge to avoid duplicate accounts
+- Add IP- and device-based anomaly detection with alerts and optional step-up verification
+- Implement progressive account lockout after failed logins with admin override and audit logging
 
 ### Features
-- Add real-time notifications using WebSockets
-- Implement video transcoding for multiple qualities
-- Add search functionality with filters (date, views, likes)
-- Create a recommendation system based on watch history
-- Add video sharing and embed functionality
-- Implement comment moderation features
+- Add real-time notifications (Socket.io or Server-Sent Events) for comments, likes, and subscriptions with per-user rate limits
+- Implement video transcoding for multiple qualities and codecs, storing rendition metadata and playback manifests
+- Add search with filters (date, views, likes, duration, tags) backed by text indexes or a search service (Meilisearch/Elastic)
+- Build a recommendation system using collaborative filtering on watch history and implicit feedback signals
+- Add privacy-aware video sharing links, embeddable iframes, and share-intent tracking
+- Implement comment moderation (profanity filters, spam detection, manual review queue, and soft deletes with audit trails)
 
 ### Performance
-- Add caching layer for frequently accessed data
-- Implement database query optimization and indexing review
-- Add pagination for all list endpoints
-- Consider implementing CDN for static assets
-- Add database connection pooling optimization
+- Add caching for hot paths (channel profiles, video metadata, trending lists) with cache invalidation hooks on writes
+- Review and optimize queries with MongoDB profiler; add compound indexes that match query shapes
+- Ensure cursor-based pagination on all list endpoints to keep responses consistent under load
+- Serve static assets and thumbnails via CDN with aggressive caching and cache-busting on updates
+- Tune connection pooling and timeouts; add health checks and retry policies for transient DB errors
 
 ### Infrastructure
-- Set up CI/CD pipeline
-- Add Docker containerization
-- Create comprehensive API documentation with Swagger/OpenAPI
-- Implement structured logging with ELK stack
-- Add monitoring and alerting (Prometheus, Grafana)
-- Create database backup and recovery procedures
+- Set up CI/CD pipeline with lint/test on PRs and automated deploys to staging/production with secrets managed via vault
+- Add Docker images with multi-stage builds and a docker-compose file for local dev (app + MongoDB + Redis)
+- Publish comprehensive API docs (OpenAPI/Swagger) and keep them versioned with the code
+- Implement structured logging (JSON) shipped to a log aggregator (ELK/Vector/Loki) with correlation IDs
+- Add monitoring and alerting (Prometheus + Grafana) for latency, error rate, queue depth, and Cloudinary/Redis health
+- Create automated backups with retention, PITR (if using managed DB), and documented recovery drills
 
 ### Code Quality
-- Add API versioning strategy
-- Implement GraphQL as an alternative to REST
-- Add request/response compression
-- Create developer documentation for onboarding
-- Set up code quality checks with ESLint and Prettier
-- Add pre-commit hooks for code formatting and linting
+- Define an API versioning strategy (prefix-based routing, deprecation headers, and changelog)
+- Consider a GraphQL gateway for aggregated reads while keeping writes on REST for simplicity
+- Enable request/response compression (gzip/br) with safe size limits and content-type guards
+- Expand developer docs: architecture decisions (ADR), runbooks, onboarding checklist, and sample env files
+- Enforce ESLint + Prettier in CI with consistent configs shared across services
+- Add pre-commit hooks (lint, type checks if added, tests subset) to keep main branch clean
+
+### Observability
+- Add distributed tracing (OpenTelemetry) around controllers/services and external calls (MongoDB, Redis, Cloudinary)
+- Create RED/SLO dashboards (Rate, Errors, Duration) with alert thresholds tied to business impact
+- Instrument business metrics (signups, uploads, publishes, watch completions) and emit them to a time-series DB
+
+### Data Governance
+- Implement PII classification, field-level encryption for sensitive attributes, and a data retention policy
+- Add GDPR-style data export/delete workflows with admin review and audit logs
+- Validate inbound payloads with a shared schema library and provide consistent error shapes for clients
+
+### Scalability
+- Add background job processing (BullMQ/Cloud Tasks) for uploads, transcoding, email, and notifications
+- Introduce feature flags for gradual rollouts and safe experimentation
+- Support horizontal scaling with stateless app nodes, shared session/cookie strategy, and sticky sessions only when needed
 
 ## Deployment
 
