@@ -27,4 +27,8 @@ const CommentSchema = new Schema(
 CommentSchema.plugin(mongooseAggregatePaginate);
 // Adding pagination plugin for aggregate queries on comments (e.g., for fetching comments with replies)
 
+// Fast fetch per video and author, ordered by recency
+CommentSchema.index({ video: 1, createdAt: -1 }, { name: "video_createdAt" });
+CommentSchema.index({ author: 1, createdAt: -1 }, { name: "author_createdAt" });
+
 export const Comment = mongoose.model("Comment", CommentSchema);

@@ -24,5 +24,7 @@ const LikeSchema = new mongoose.Schema(
 
 // Prevent duplicate likes per user per target
 LikeSchema.index({ targetType: 1, target: 1, likedBy: 1 }, { unique: true });
+LikeSchema.index({ likedBy: 1, createdAt: -1 }, { name: "likedBy_createdAt" });
+LikeSchema.index({ targetType: 1, target: 1, createdAt: -1 }, { name: "target_createdAt" });
 
 export const Like = mongoose.model("Like", LikeSchema);

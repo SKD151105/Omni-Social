@@ -79,6 +79,21 @@ const UserSchema = new Schema(
     { timestamps: true }
 );
 
+// Compound index helps covered queries on auth identifiers
+UserSchema.index({ email: 1, username: 1 }, { name: "email_username_cover" });
+
+// Text index for flexible user search (username > fullName > email)
+UserSchema.index(
+    { username: "text", fullName: "text", email: "text" },
+    { name: "user_text_search", weights: { username: 5, fullName: 3, email: 1 } }
+);
+
+// Partial index keeps refresh-token lookups small and sparse
+UserSchema.index(
+    { refreshTokenId: 1 },
+    { name: "refresh_token_partial", partialFilterExpression: { refreshTokenId: { $exists: true } }, sparse: true }
+);
+
 UserSchema.pre("save", async function () {
     if (this.isModified("password")) {
         const salt = await bcrypt.genSalt(10);

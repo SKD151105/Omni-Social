@@ -31,4 +31,9 @@ const playlistSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+// Quick owner lookups and name-based searches
+playlistSchema.index({ owner: 1, createdAt: -1 }, { name: "owner_createdAt" });
+playlistSchema.index({ name: 1, owner: 1 }, { name: "name_owner_cover" });
+playlistSchema.index({ name: "text", description: "text" }, { name: "playlist_text_search", weights: { name: 5, description: 1 } });
+
 export const Playlist = mongoose.model("Playlist", playlistSchema);

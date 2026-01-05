@@ -46,6 +46,7 @@ const VideoSchema = new Schema(
         owner: {
             type: Schema.Types.ObjectId,
             ref: "User",
+            index: true,
         },
     },
     { timestamps: true }
@@ -53,5 +54,20 @@ const VideoSchema = new Schema(
 
 VideoSchema.plugin(mongooseAggregatePaginate);
 // Adding pagination plugin for aggregate queries on videos (e.g., for feeds, searches)
+
+// Feed-friendly compound index (owner + published + recency)
+VideoSchema.index({ owner: 1, isPublished: 1, createdAt: -1 }, { name: "owner_published_createdAt" });
+
+// Hot list: published videos ranked by views, then recency
+VideoSchema.index(
+    { isPublished: 1, views: -1, createdAt: -1 },
+    { name: "published_views_rank", partialFilterExpression: { isPublished: true } }
+);
+
+// Text search across title and description
+VideoSchema.index(
+    { title: "text", description: "text" },
+    { name: "video_text_search", weights: { title: 5, description: 1 } }
+);
 
 export const Video = mongoose.model("Video", VideoSchema);

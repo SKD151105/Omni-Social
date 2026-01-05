@@ -54,6 +54,7 @@ I've built this backend as a RESTful API that handles user management, media upl
   - [Technical Stack](#technical-stack)
   - [Middleware Flow](#middleware-flow)
   - [Architecture](#architecture-1)
+  - [Performance & Indexing](#performance--indexing)
   - [Future Improvements](#future-improvements)
     - [Testing](#testing)
     - [Security](#security)
@@ -372,6 +373,14 @@ This separation allows:
 - Mocking database operations in tests
 - Changing database implementation without touching business logic
 - Different developers working on different layers
+
+## Performance & Indexing
+
+- Purpose-built MongoDB indexes are defined across users, videos, comments, subscriptions, playlists, tweets, and likes to speed up common queries (lookups, feeds, recency sorts, search, and uniqueness).
+- Partial and sparse indexes keep hot paths fast while limiting index bloat (e.g., refresh tokens, published video rankings).
+- Text indexes enable lightweight search where applicable; adjust weights or drop if your deployment does not need search.
+- Compound indexes align with query shapes (filters + sort) to avoid collection scans and improve covered-query performance.
+- TTL support is available where applicable (e.g., `expiresAt` on tweets) to auto-expire documents without cron jobs.
 
 ## Future Improvements
 
