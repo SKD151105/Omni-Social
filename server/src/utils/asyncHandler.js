@@ -1,12 +1,12 @@
 // Wrap async route handlers and forward any error (sync or async) to Express.
-export const asyncHandler = (fn) => async (req, res, next) => {
+export const asyncHandler = (handler) => async (req, res, next) => {
     try {
-        await fn(req, res, next);
+        await handler(req, res, next);
     } catch (err) {
         next(err);
     }
 };
 
-// export const asyncHandler = (fn) => (req, res, next) => {
-//     Promise.resolve(fn(req, res, next)).catch(next);
+// export const asyncHandler = (handler) => (req, res, next) => {
+//     Promise.resolve(handler(req, res, next)).catch(next);
 // };
