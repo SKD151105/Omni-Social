@@ -1,0 +1,404 @@
+{
+  "info": {
+    "name": "Omni-Social API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "accessToken", "value": "" },
+    { "key": "csrfToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "videoId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "channelId", "value": "" },
+    { "key": "playlistId", "value": "" },
+    { "key": "tweetId", "value": "" },
+    { "key": "username", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Healthcheck",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/healthcheck"
+      }
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/user/register"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/user/login"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Cookie", "value": "refreshToken={{refreshToken}}; csrfToken={{csrfToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/user/refresh-token"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/user/logout"
+          }
+        },
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/user/current-user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Update Account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/user/update-account"
+          }
+        },
+        {
+          "name": "Update Avatar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/user/avatar"
+          }
+        },
+        {
+          "name": "Update Cover Image",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/user/cover-image"
+          }
+        },
+        {
+          "name": "Channel Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/user/c/{{username}}"
+          }
+        },
+        {
+          "name": "Watch History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/user/history"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "item": [
+        {
+          "name": "List Videos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/videos" }
+        },
+        {
+          "name": "Publish Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/videos"
+          }
+        },
+        {
+          "name": "Get Video",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/videos/{{videoId}}" }
+        },
+        {
+          "name": "Update Video",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/videos/{{videoId}}"
+          }
+        },
+        {
+          "name": "Delete Video",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/videos/{{videoId}}"
+          }
+        },
+        {
+          "name": "Toggle Publish",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/videos/{{videoId}}/toggle-publish"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Get Comments",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/comments/{{videoId}}" }
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/comments/{{videoId}}"
+          }
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/comments/c/{{commentId}}"
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/comments/c/{{commentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Likes",
+      "item": [
+        {
+          "name": "Toggle Video Like",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/likes/toggle/v/{{videoId}}"
+          }
+        },
+        {
+          "name": "Toggle Comment Like",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/likes/toggle/c/{{commentId}}"
+          }
+        },
+        {
+          "name": "Get Liked Videos",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/likes/videos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Toggle Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/subscriptions/c/{{channelId}}"
+          }
+        },
+        {
+          "name": "Get User Subscriptions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/subscriptions/u/{{userId}}"
+          }
+        },
+        {
+          "name": "Get Channel Subscribers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/subscriptions/c/{{channelId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Playlists",
+      "item": [
+        {
+          "name": "Create Playlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/playlists"
+          }
+        },
+        {
+          "name": "Get Playlist",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/playlists/{{playlistId}}" }
+        },
+        {
+          "name": "Update Playlist",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/playlists/{{playlistId}}"
+          }
+        },
+        {
+          "name": "Delete Playlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/playlists/{{playlistId}}"
+          }
+        },
+        {
+          "name": "Add Video to Playlist",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/playlists/add/{{videoId}}/{{playlistId}}"
+          }
+        },
+        {
+          "name": "Remove Video from Playlist",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/playlists/remove/{{videoId}}/{{playlistId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tweets",
+      "item": [
+        {
+          "name": "Create Tweet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/tweets"
+          }
+        },
+        {
+          "name": "Get User Tweets",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/tweets/user/{{userId}}" }
+        },
+        {
+          "name": "Update Tweet",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/tweets/{{tweetId}}"
+          }
+        },
+        {
+          "name": "Delete Tweet",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/tweets/{{tweetId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Stats",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/dashboard/stats" }
+        },
+        {
+          "name": "Videos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/dashboard/videos" }
+        }
+      ]
+    }
+  ]
+}

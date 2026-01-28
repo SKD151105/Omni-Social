@@ -2,7 +2,7 @@
 # Omni-Social
 
 
-Omni-Social is a robust, scalable backend for a modern social media platform, engineered with Express.js and MongoDB. It powers seamless user authentication, secure media uploads, interactive video sharing, real-time comments, channel subscriptions, playlists, and analytics—delivering all the essential features for a dynamic, community-driven experience.
+Omni-Social is a backend-only API for a modern social media platform, engineered with Express.js and MongoDB. It powers user authentication, secure media uploads, video sharing, real-time comments, channel subscriptions, playlists, and analytics—covering essential backend features without a frontend.
   
 <br />
 
@@ -20,7 +20,7 @@ Omni-Social is a robust, scalable backend for a modern social media platform, en
 
 ## Overview
 
-I've built this backend as a RESTful API that handles user management, media uploads, and social interactions. The codebase is organized into controllers, services, and repositories to keep business logic separate from database operations.
+I've built this as a backend-only RESTful API that handles user management, media uploads, and social interactions. The codebase is organized into controllers, services, and repositories to keep business logic separate from database operations.
 
 ## Contents
 - [Omni-Social](#omni-social)
@@ -230,6 +230,8 @@ npm test
 ```
 
 ### Testing the API
+
+All endpoints have been tested in Postman, and a collection is included here: [postman/Omni-Social.postman_collection.json](postman/Omni-Social.postman_collection.json).
 
 Health check:
 ```bash
