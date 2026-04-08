@@ -129,12 +129,20 @@ function App() {
 
   const bootstrapData = async (token, providedUser = null) => {
     const user = providedUser || (await loadCurrentUser(token));
-    await Promise.all([
-      loadDashboard(token),
-      loadVideos(token),
-      loadTweets(token, user?._id),
-      loadPlaylists(token, user?._id),
-    ]);
+
+    const tasks = [
+      { label: "dashboard", run: () => loadDashboard(token) },
+      { label: "videos", run: () => loadVideos(token) },
+      { label: "tweets", run: () => loadTweets(token, user?._id) },
+      { label: "playlists", run: () => loadPlaylists(token, user?._id) },
+    ];
+
+    const results = await Promise.allSettled(tasks.map((task) => task.run()));
+    const failedSections = results
+      .map((result, index) => (result.status === "rejected" ? tasks[index].label : null))
+      .filter(Boolean);
+
+    return failedSections;
   };
 
   useEffect(() => {
@@ -187,9 +195,13 @@ function App() {
       setAccessToken(token);
       setToken(token);
       setCurrentUser(user);
-      await bootstrapData(token, user);
+      const failedSections = await bootstrapData(token, user);
       navigate("/dashboard");
-      setBanner("Login successful");
+      if (failedSections.length) {
+        setBanner(`Login successful, but failed to load: ${failedSections.join(", ")}`);
+      } else {
+        setBanner("Login successful");
+      }
     });
 
   const onLogout = async () => {
